@@ -76,10 +76,16 @@ test("gallery contains only generated product angles and wrist view", async ({
     "src",
     /\/21[.-]/,
   );
-  await dialog.getByRole("button", { name: "Следующее фото" }).click();
+  await dialog.getByRole("button", { name: "Следующий слайд" }).click();
+  await expect(dialog.locator(".stone-card")).toBeVisible();
   await expect(
-    dialog.getByRole("button", { name: "Предметное фото", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
+    dialog.getByRole("button", { name: "Следующий слайд" }),
+  ).toBeDisabled();
+  await dialog.getByRole("button", { name: "Предыдущий слайд" }).click();
+  await expect(dialog.locator(".modal-image .branded-image")).toHaveAttribute(
+    "src",
+    /\/21[.-]/,
+  );
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
@@ -188,30 +194,36 @@ test("page and product dialog fit phones and tablets with loaded fonts", async (
   ).toBe(true);
 });
 
-test("hero switches between three real designs without autoplay", async ({
+test("editorial hero explains the brand and homepage photographs do not repeat", async ({
   page,
 }) => {
   await page.goto("/");
-  const controls = page.getByRole("group", {
-    name: "Сочетание на первом экране",
-  });
-  await controls.getByRole("button", { name: "02 Свежесть" }).click();
-  await expect(page.locator(".hero-image")).toHaveAttribute(
-    "alt",
-    /На одной волне/,
+  await expect(page.locator(".hero-category")).toContainText(
+    "Авторские украшения",
   );
-  await controls.getByRole("button", { name: "03 Характер" }).click();
-  await expect(page.locator(".hero-image")).toHaveAttribute(
-    "alt",
-    /После заката/,
+  await expect(page.locator(".hero-category")).toContainText(
+    "натуральных камней",
   );
-  await page.locator(".hero-product-label").click();
-  await expect(page.getByRole("dialog").getByRole("heading")).toHaveText(
-    "После заката",
+  expect(
+    await page
+      .locator(".hero-category")
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+  ).toBeGreaterThanOrEqual(17);
+  await expect(page.locator(".hero-craft-note")).toContainText(
+    "Собраны вручную",
   );
-  await expect(page.locator(".modal-palette")).toHaveText(
-    "Аметист · розовый кварц · лава",
+  await expect(page.locator(".hero-neutral .branded-image")).toHaveAttribute(
+    "src",
+    /editorial-hero/,
   );
+  await expect(
+    page.locator(".hero-pagination, .gallery-modes, .product-stones"),
+  ).toHaveCount(0);
+  const sources = await page
+    .locator("main .branded-image")
+    .evaluateAll((images) => images.map((img) => img.getAttribute("src")));
+  expect(sources.length).toBe(8);
+  expect(new Set(sources).size).toBe(sources.length);
 });
 
 test("page and product dialog meet WCAG AA automated accessibility checks", async ({
@@ -244,10 +256,7 @@ test("page and product dialog meet WCAG AA automated accessibility checks", asyn
       })),
     })),
   ).toEqual([]);
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: "Камни и смысл", exact: true })
-    .click();
+  await page.getByRole("dialog").locator("[data-stone-slide]").click();
   const card = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
@@ -319,8 +328,16 @@ test("all 21 uploaded angles have generated branded counterparts in the gallerie
   ]) {
     await page.getByRole("button", { name: `Подробнее: ${name}` }).click();
     const dialog = page.getByRole("dialog");
-    const thumbs = dialog.locator(".gallery-thumbnails button");
+    const thumbs = dialog.locator(
+      ".gallery-thumbnails button[data-photo-slide]",
+    );
     await expect(thumbs).toHaveCount(count);
+    await expect(dialog.locator(".gallery-thumbnails button")).toHaveCount(
+      count + 1,
+    );
+    await expect(
+      dialog.locator(".gallery-thumbnails button").last(),
+    ).toHaveAttribute("data-stone-slide", "true");
     for (let i = 0; i < count; i++) {
       await thumbs.nth(i).click();
       const image = dialog.locator(".modal-image .branded-image");
@@ -357,13 +374,14 @@ test("each bracelet has a material card with editorial symbolism", async ({
     ],
     ["После заката", ["Розовый кварц", "Лава", "Аметист"]],
   ]) {
-    await page
-      .getByRole("button", { name: `Камни и смысл: ${name}`, exact: true })
-      .click();
+    await page.getByRole("button", { name: `Подробнее: ${name}` }).click();
     const dialog = page.getByRole("dialog");
-    await dialog
-      .getByRole("button", { name: "Камни и смысл", exact: true })
-      .click();
+    const photoCount = await dialog.locator("[data-photo-slide]").count();
+    for (let i = 0; i < photoCount; i++)
+      await dialog.getByRole("button", { name: "Следующий слайд" }).click();
+    await expect(
+      dialog.getByRole("button", { name: "Следующий слайд" }),
+    ).toBeDisabled();
     const card = dialog.locator(".stone-card");
     await expect(card).toBeVisible();
     await expect(card.locator(".stone-row")).toHaveCount(expected.length);
@@ -379,4 +397,67 @@ test("each bracelet has a material card with editorial symbolism", async ({
     );
     await page.keyboard.press("Escape");
   }
+});
+
+test("gallery responds to keyboard arrows or a horizontal touch gesture", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Подробнее: На одной волне" }).click();
+  const dialog = page.getByRole("dialog");
+  if (testInfo.project.name === "mobile") {
+    const box = await dialog.locator(".gallery-stage").boundingBox();
+    const cdp = await page.context().newCDPSession(page),
+      y = box.y + Math.min(160, box.height / 2),
+      start = box.x + box.width * 0.8,
+      end = box.x + box.width * 0.2;
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: start, y }],
+    });
+    for (let i = 1; i <= 5; i++)
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: start + ((end - start) * i) / 5, y }],
+      });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await cdp.detach();
+  } else await page.keyboard.press("ArrowRight");
+  await expect(dialog.locator('[data-photo-slide="1"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.keyboard.press("ArrowLeft");
+  await expect(dialog.locator('[data-photo-slide="0"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(
+    dialog.getByRole("button", { name: "Предыдущий слайд" }),
+  ).toBeDisabled();
+});
+
+test("photo logos use varied clear corners and remain inside the photographs", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const corners = new Set();
+  for (const photo of await page.locator("main .branded-photo").all()) {
+    await photo.scrollIntoViewIfNeeded();
+    const mark = photo.locator(".photo-watermark");
+    corners.add(await mark.getAttribute("data-corner"));
+    const image = await photo.boundingBox(),
+      logo = await mark.boundingBox();
+    expect(logo.x).toBeGreaterThanOrEqual(image.x - 1);
+    expect(logo.y).toBeGreaterThanOrEqual(image.y - 1);
+    expect(logo.x + logo.width).toBeLessThanOrEqual(image.x + image.width + 1);
+    expect(logo.y + logo.height).toBeLessThanOrEqual(
+      image.y + image.height + 1,
+    );
+    await expect(mark).toHaveCSS("opacity", "1");
+  }
+  expect(corners.size).toBeGreaterThanOrEqual(3);
 });

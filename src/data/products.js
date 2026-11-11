@@ -15,6 +15,43 @@ const pearl = photo(17),
   leaf = photo(7),
   violet = photo(11);
 
+// Individually selected clear corners. Keep the logo off flowers, hands,
+// stone details and patterned backgrounds; lower corners are intentional fallbacks.
+const corners = {
+  1: "top-right",
+  2: "bottom-right",
+  3: "bottom-right",
+  4: "top-right",
+  5: "bottom-left",
+  6: "top-right",
+  7: "top-left",
+  8: "top-left",
+  9: "top-left",
+  10: "top-left",
+  11: "top-left",
+  12: "bottom-right",
+  13: "top-left",
+  14: "top-left",
+  15: "bottom-right",
+  16: "top-left",
+  17: "top-left",
+  18: "top-left",
+  19: "top-left",
+  20: "top-left",
+  21: "top-left",
+};
+export const photoBranding = Object.fromEntries(
+  Object.entries(corners).map(([number, corner]) => [
+    photo(Number(number)),
+    { corner, ...(Number(number) === 6 ? { insetY: "1%" } : {}) },
+  ]),
+);
+export const homePhotos = {
+  story: photo(9),
+  light: photo(21),
+  contrast: photo(15),
+};
+
 export const TELEGRAM_URL = "https://t.me/BeliakovaKaterina";
 export const contactFor = (product) =>
   `${TELEGRAM_URL}?text=${encodeURIComponent(`Здравствуйте, Екатерина! Мне понравился браслет ENOSI «${product.name}». Подскажите, пожалуйста, его состав, размер и наличие.`)}`;
@@ -29,11 +66,12 @@ export const products = [
     mood: "soft",
     tag: "НЕЖНОСТЬ В ДЕТАЛЯХ",
     image: pearl,
+    cover: photo(17),
     wrist: photo(21),
     description:
-      "Мягкий розовый, прозрачные грани и жемчужные переливы. Светлое сочетание, которое хочется носить и с любимой рубашкой, и с платьем на особенный вечер.",
+      "Мягкий розовый, прозрачные бусины и жемчужные переливы. Светлое сочетание, которое хочется носить и с любимой рубашкой, и с платьем на особенный вечер.",
     detail:
-      "В этом сочетании встречаются гладкие, гранёные и жемчужные бусины. Их ритм и порядок сохранены по фотографиям автора.",
+      "Розовый кварц, прозрачный горный хрусталь и жемчуг соединяются в светлый ритм. Порядок бусин сохранён по фотографиям автора.",
     galleries: [
       angle(17, "Предметное фото"),
       angle(18, "Другой ракурс"),
@@ -50,6 +88,7 @@ export const products = [
     mood: "soft",
     tag: "ПРИРОДНОЕ ПРИТЯЖЕНИЕ",
     image: sage,
+    cover: photo(4),
     wrist: photo(3),
     description:
       "Прохладный мятный оттенок встречается с полупрозрачным розовым. Лаконичный ритм круглых бусин — для лёгких образов и маленьких повседневных радостей.",
@@ -70,6 +109,7 @@ export const products = [
     mood: "green",
     tag: "У КАЖДОГО СВОЙ ХАРАКТЕР",
     image: leaf,
+    cover: photo(8),
     wrist: photo(10),
     description:
       "Глубокий зелёный, розовые камни свободной формы и маленький золотистый лист. Живое, немного неожиданное сочетание фактур — как находка на любимой прогулке.",
@@ -92,11 +132,12 @@ export const products = [
     mood: "contrast",
     tag: "ВЫРАЗИТЕЛЬНОЕ СОЧЕТАНИЕ",
     image: violet,
+    cover: photo(13),
     wrist: photo(15),
     description:
-      "Насыщенный фиолетовый и светлый розовый рядом с чёрными фактурными бусинами. Контраст, который становится красивым акцентом в спокойном образе.",
+      "Фиолетовый аметист и полупрозрачный розовый кварц рядом с чёрной фактурной лавой. Одна светлая лавандовая бусина выделяется матовой поверхностью — тонкая деталь в ритме полированных камней.",
     detail:
-      "Гладкие камни и четыре чёрные фактурные бусины с серебристыми ажурными деталями. У одной фиолетовой бусины особенно светлый, лавандовый оттенок.",
+      "В браслете четыре чёрные бусины лавы с серебристыми ажурными деталями. У аметиста шесть тёмных полированных бусин и одна светлая лавандовая — она единственная матовая.",
     galleries: [
       angle(11, "Предметное фото"),
       angle(12, "На руке"),
