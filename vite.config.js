@@ -1,9 +1,9 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { viteSingleFile } from 'vite-plugin-singlefile';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { viteSingleFile } from "vite-plugin-singlefile";
 
-export default defineConfig({
-  plugins: [react(), viteSingleFile()],
-  base: './',
-  build: { assetsInlineLimit: 10000000 },
-});
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), ...(mode === "standalone" ? [viteSingleFile()] : [])],
+  base: "./",
+  build: { assetsInlineLimit: mode === "standalone" ? 10000000 : 4096 },
+}));

@@ -1,139 +1,907 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import { ArrowUpRight, ArrowRight, X, Menu, Heart, Plus, Minus, Check, MoveRight, Flower2, Gem, Hand, Asterisk } from 'lucide-react';
-import '@fontsource/cormorant-garamond/latin-400.css';
-import '@fontsource/cormorant-garamond/cyrillic-400.css';
-import '@fontsource/cormorant-garamond/latin-400-italic.css';
-import '@fontsource/cormorant-garamond/cyrillic-400-italic.css';
-import '@fontsource/manrope/latin-400.css';
-import '@fontsource/manrope/cyrillic-400.css';
-import '@fontsource/manrope/latin-500.css';
-import '@fontsource/manrope/cyrillic-500.css';
-import './styles.css';
-import heroImage from './assets/hero.webp';
+import React, { useEffect, useRef, useState } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  ArrowUpRight,
+  ArrowRight,
+  ArrowLeft,
+  X,
+  Menu,
+  Heart,
+  Plus,
+  Minus,
+  Check,
+  Send,
+  MoveRight,
+  Flower2,
+  Gem,
+  Hand,
+  Asterisk,
+} from "lucide-react";
+import "@fontsource/cormorant-garamond/latin-400.css";
+import "@fontsource/cormorant-garamond/cyrillic-400.css";
+import "@fontsource/cormorant-garamond/latin-400-italic.css";
+import "@fontsource/cormorant-garamond/cyrillic-400-italic.css";
+import "@fontsource/manrope/latin-400.css";
+import "@fontsource/manrope/cyrillic-400.css";
+import "@fontsource/manrope/latin-500.css";
+import "@fontsource/manrope/cyrillic-500.css";
+import { products, moods, TELEGRAM_URL, contactFor } from "./data/products";
+import logo from "./assets/logo-enosi.jpg";
+import "./styles.css";
 
-// Replace image paths and editorial product information here when real ENOSI photographs are ready.
-const products = [
-  { id: 'first-light', name: 'Первый свет', stone: 'Амазонит · розовый кварц', mood: 'sage', image: 0, description: 'Приглушённый зелёный встречается с полупрозрачным розовым. Мягкое сочетание, которое легко представить и с белой рубашкой, и с любимым трикотажем.' },
-  { id: 'pink-pause', name: 'Тихий румянец', stone: 'Розовый кварц · перламутр', mood: 'rose', image: 1, description: 'Пудровые оттенки и светлые переливы. Нежный акцент для тех дней, когда хочется выбрать что-то особенно близкое себе.' },
-  { id: 'warm-sand', name: 'Тёплый берег', stone: 'Яшма · солнечный камень', mood: 'sand', image: 2, description: 'Тёплые песочные тона и природный рисунок камней. Спокойное, фактурное сочетание для повседневных образов.' },
+const heroProducts = [products[0], products[1], products[3]];
+const questions = [
+  [
+    "Как выбрать браслет и узнать наличие?",
+    "Напишите Екатерине в Telegram: расскажите, какое сочетание вам понравилось. Автор уточнит наличие, стоимость, состав и поможет подобрать размер. Оплаты и оформления заказов на сайте пока нет.",
+  ],
+  [
+    "Как определить размер запястья?",
+    "Измерьте запястье мягкой лентой без натяжения. Для более свободной посадки обычно прибавляют около 1–1,5 см. Перед выбором напишите автору: удобная посадка зависит и от размера бусин.",
+  ],
+  [
+    "Как ухаживать за украшением?",
+    "Снимайте браслет перед душем, тренировкой и уборкой. Избегайте прямого контакта с парфюмом и бытовой химией. Протирайте мягкой сухой тканью, храните отдельно от других украшений.",
+  ],
+  [
+    "Будет ли мой браслет точно как на фото?",
+    "В коллекции показаны украшения автора. У натуральных камней возможны небольшие различия рисунка и оттенка. В карточке доступны оригинальные фотографии; детали конкретного браслета можно обсудить с Екатериной.",
+  ],
 ];
-const moods = [{ id: 'all', name: 'Все сочетания' }, { id: 'sage', name: 'Шалфейные' }, { id: 'rose', name: 'Пудровые' }, { id: 'sand', name: 'Тёплые' }];
 
-function Symbol({ className = '' }) {
-  return <svg className={className} viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M35 5C5 12 7 45 25 47c14 1-9-16 10-42Z" fill="currentColor" opacity=".85"/><path d="M29 59c30-7 28-40 10-42-14-1 9 16-10 42Z" fill="currentColor" opacity=".45"/><path d="M29 46C37 35 26 28 35 17" stroke="currentColor" strokeWidth=".8"/><circle cx="31" cy="31" r="2.4" fill="#b79665"/></svg>;
+function TelegramLink({ children, className = "", product }) {
+  return (
+    <a
+      className={className}
+      href={product ? contactFor(product) : TELEGRAM_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {children}
+    </a>
+  );
+}
+
+function Brand({ footer = false }) {
+  return (
+    <a
+      className={`brand ${footer ? "brand-footer" : ""}`}
+      href="#top"
+      aria-label="ENOSI — на главную"
+    >
+      <img src={logo} alt="Логотип ENOSI" width="178" height="108" />
+    </a>
+  );
 }
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [mood, setMood] = useState('all');
+  const [mood, setMood] = useState("all");
+  const [heroIndex, setHeroIndex] = useState(0);
   const [selected, setSelected] = useState(null);
-  const [favorites, setFavorites] = useState([]);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [favorites, setFavorites] = useState(() => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem("enosi-favorites-v2") || "[]",
+      );
+      return Array.isArray(saved)
+        ? saved.filter((id) => products.some((p) => p.id === id))
+        : [];
+    } catch {
+      return [];
+    }
+  });
   const [openQuestion, setOpenQuestion] = useState(null);
-  const [contactOpen, setContactOpen] = useState(false);
   const dialog = useRef(null);
-  const modalOpen = Boolean(selected || contactOpen);
+  const trigger = useRef(null);
+  const heroProduct = heroProducts[heroIndex];
+  const visibleProducts = products.filter(
+    (p) =>
+      (mood === "all" || p.mood === mood) &&
+      (!onlyFavorites || favorites.includes(p.id)),
+  );
 
   useEffect(() => {
-    const observer = new IntersectionObserver(entries => entries.forEach(entry => {
-      if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); }
-    }), { threshold: 0.08 });
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    try {
+      localStorage.setItem("enosi-favorites-v2", JSON.stringify(favorites));
+    } catch {
+      /* Local storage can be disabled. */
+    }
+  }, [favorites]);
+
+  useEffect(() => {
+    if (!("IntersectionObserver" in window)) return;
+    const observer = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        }),
+      { threshold: 0.08 },
+    );
+    document.querySelectorAll(".reveal").forEach((el) => {
+      el.classList.add("will-reveal");
+      observer.observe(el);
+    });
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    if (!modalOpen) return;
-    const previousFocus = document.activeElement;
+    if (!selected) return;
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    dialog.current?.querySelector('button')?.focus();
+    document.body.style.overflow = "hidden";
+    dialog.current?.querySelector("button")?.focus();
     function onKey(event) {
-      if (event.key === 'Escape') { setSelected(null); setContactOpen(false); }
-      if (event.key === 'Tab') {
-        const focusable = [...dialog.current.querySelectorAll('button, a[href]')];
-        const first = focusable[0], last = focusable.at(-1);
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      if (event.key === "Escape") setSelected(null);
+      if (event.key === "Tab") {
+        const items = [...dialog.current.querySelectorAll("button, a[href]")];
+        const first = items[0],
+          last = items.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
       }
     }
-    document.addEventListener('keydown', onKey);
-    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', onKey); previousFocus?.focus(); };
-  }, [modalOpen]);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey);
+      trigger.current?.focus();
+    };
+  }, [selected]);
 
-  function openProduct(product) { setSelected(product); }
-  function toggleFavorite(id) { setFavorites(previous => previous.includes(id) ? previous.filter(value => value !== id) : [...previous, id]); }
-  function navigate() { setMenuOpen(false); }
+  useEffect(() => {
+    function onKey(event) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
-  return <>
-    <a className="skip-link" href="#main">Перейти к содержимому</a>
-    <div className="announcement">Природа создаёт камни. Мы находим их сочетания.</div>
-    <header className="header">
-      <a className="wordmark" href="#" aria-label="ENOSI — на главную"><Symbol /><span>ENOSI</span></a>
-      <nav className={menuOpen ? 'navigation is-open' : 'navigation'} aria-label="Основная навигация" id="main-navigation">
-        <a href="#collection" onClick={navigate}>Коллекция</a><a href="#story" onClick={navigate}>История ENOSI</a><a href="#craft" onClick={navigate}>Камни и детали</a><a href="#contacts" onClick={navigate}>Контакты</a>
-      </nav>
-      <a className="header-note" href="#philosophy">Красота в соединении <ArrowUpRight size={15}/></a>
-      <button className="menu-toggle icon-button" aria-label={menuOpen ? 'Закрыть меню' : 'Открыть меню'} aria-expanded={menuOpen} aria-controls="main-navigation" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X/> : <Menu/>}</button>
-    </header>
-    <main id="main">
-      <section className="hero" aria-labelledby="hero-title">
-        <div className="hero-copy">
-          <div className="eyebrow"><span className="little-line"/> АВТОРСКИЕ УКРАШЕНИЯ ИЗ НАТУРАЛЬНЫХ КАМНЕЙ</div>
-          <h1 id="hero-title">Красота,<br/>к которой<br/><em>тянет.</em><Asterisk className="heading-star" aria-hidden="true"/></h1>
-          <p>Неповторимые камни. Неожиданные сочетания.<br className="desktop-break"/> Украшения, в которых вы узнаёте себя.</p>
-          <a className="button primary" href="#collection">Найти своё сочетание <ArrowUpRight size={19}/></a>
-          <div className="hero-footnote"><span className="small-orbit">e</span><span>Создано вручную.<br/>Выбрано сердцем.</span></div>
+  function openProduct(product, event) {
+    trigger.current = event.currentTarget;
+    setPhotoIndex(0);
+    setSelected(product);
+  }
+  function toggleFavorite(id) {
+    setFavorites((previous) =>
+      previous.includes(id)
+        ? previous.filter((value) => value !== id)
+        : [...previous, id],
+    );
+  }
+  function showFavorites() {
+    setOnlyFavorites(!onlyFavorites);
+    setMood("all");
+    setMenuOpen(false);
+    document
+      .querySelector("#collection")
+      .scrollIntoView({ behavior: "smooth" });
+  }
+
+  return (
+    <>
+      <a className="skip-link" href="#main">
+        Перейти к содержимому
+      </a>
+      <div className="announcement" id="top">
+        <span>Небольшие партии. Большая любовь к деталям.</span>
+        <TelegramLink>
+          Знакомиться с автором <ArrowUpRight size={12} />
+        </TelegramLink>
+      </div>
+      <header className="header">
+        <Brand />
+        <nav
+          className={menuOpen ? "navigation is-open" : "navigation"}
+          aria-label="Основная навигация"
+          id="main-navigation"
+        >
+          <a href="#collection" onClick={() => setMenuOpen(false)}>
+            Выбрать украшение
+          </a>
+          <a href="#story" onClick={() => setMenuOpen(false)}>
+            Мир ENOSI
+          </a>
+          <a href="#craft" onClick={() => setMenuOpen(false)}>
+            Внимание к деталям
+          </a>
+          <a href="#contacts" onClick={() => setMenuOpen(false)}>
+            Контакты
+          </a>
+        </nav>
+        <div className="header-actions">
+          <button
+            className={`icon-button saved-button ${onlyFavorites ? "is-active" : ""}`}
+            aria-label={`Избранное: ${favorites.length}`}
+            aria-pressed={onlyFavorites}
+            onClick={showFavorites}
+          >
+            <Heart size={19} />
+            {favorites.length > 0 && (
+              <span className="saved-count">{favorites.length}</span>
+            )}
+          </button>
+          <TelegramLink className="header-contact">
+            Написать автору <ArrowUpRight size={15} />
+          </TelegramLink>
+          <button
+            className="menu-toggle icon-button"
+            aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"}
+            aria-expanded={menuOpen}
+            aria-controls="main-navigation"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            {menuOpen ? <X /> : <Menu />}
+          </button>
         </div>
-        <div className="hero-visual">
-          <img src={heroImage} alt="Демонстрационная композиция: браслет из розовых и шалфейных бусин на светлом камне" className="hero-image" fetchPriority="high"/>
-          <span className="image-tag">ПРИРОДА × ТВОРЧЕСТВО</span>
-          <div className="photo-caption"><span>Искусство быть собой</span><span>ENOSI / 01</span></div>
-          <div className="hero-seal"><Symbol/><span>У КАЖДОГО КАМНЯ<br/>СВОЙ ХАРАКТЕР</span></div>
-        </div>
-      </section>
-
-      <div className="values-strip"><span><Hand size={19}/> Ручная работа, небольшие партии</span><i/><span><Gem size={19}/> Красота натуральных камней</span><i/><span><Flower2 size={20}/> Свобода быть разной</span></div>
-
-      <section className="collection section-space" id="collection" aria-labelledby="collection-title">
-        <div className="section-heading reveal"><div><div className="eyebrow">МАЛЕНЬКИЕ ИСТОРИИ В КАМНЯХ</div><h2 id="collection-title">С чем вы <em>созвучны?</em></h2></div><p>Не ищите особый повод.<br/>Достаточно вашего «мне нравится».</p></div>
-        <div className="collection-toolbar"><div className="filters" role="group" aria-label="Выбрать оттенок">{moods.map(item => <button key={item.id} className={mood === item.id ? 'filter active' : 'filter'} aria-pressed={mood === item.id} onClick={() => setMood(item.id)}>{item.id !== 'all' && <span className={`color-dot ${item.id}`}/>} {item.name}</button>)}</div><span className="collection-count">{mood === 'all' ? 'Три сочетания — три характера' : 'Ваше сочетание'}</span></div>
-        <div className="product-grid">{products.filter(product => mood === 'all' || product.mood === mood).map(product => <article className="product-card" key={product.id}>
-          <div className={`product-picture product-${product.image}`}>
-            <button className="product-image-button" onClick={event => openProduct(product, event)} aria-label={`Подробнее: ${product.name}`}><span className="product-photo" role="img" aria-label={`Демонстрационный браслет: ${product.stone}`}/><span className="view-product">Рассмотреть поближе <ArrowUpRight size={17}/></span></button>
-            <span className="product-tag">{product.image === 0 ? 'НЕЖНОЕ ЗНАКОМСТВО' : product.image === 1 ? 'МЯГКИЙ АКЦЕНТ' : 'ПРИРОДНЫЕ ОТТЕНКИ'}</span>
-            <button className={`favorite icon-button ${favorites.includes(product.id) ? 'is-favorite' : ''}`} aria-label={`${favorites.includes(product.id) ? 'Убрать из' : 'Добавить в'} избранного: ${product.name}`} aria-pressed={favorites.includes(product.id)} onClick={() => toggleFavorite(product.id)}><Heart size={19} fill={favorites.includes(product.id) ? 'currentColor' : 'none'}/></button>
+      </header>
+      <main id="main">
+        <section className="hero" aria-labelledby="hero-title">
+          <div className="hero-copy">
+            <span className="eyebrow">
+              <span className="tiny-spark" /> АВТОРСКИЕ УКРАШЕНИЯ ИЗ НАТУРАЛЬНЫХ
+              КАМНЕЙ
+            </span>
+            <h1 id="hero-title">
+              Красота,
+              <br />к которой
+              <br />
+              <em>тянет.</em>
+              <Asterisk className="heading-star" aria-hidden="true" />
+            </h1>
+            <p>
+              Соединяем оттенки, фактуры и маленькие детали.
+              <br className="desktop-break" /> Чтобы вы нашли своё — с первого
+              взгляда.
+            </p>
+            <div className="hero-buttons">
+              <a className="button primary" href="#collection">
+                Выбрать своё сочетание <ArrowUpRight size={19} />
+              </a>
+              <a className="hero-story-link" href="#story">
+                Познакомиться с ENOSI <ArrowRight size={17} />
+              </a>
+            </div>
+            <div className="hero-bottom">
+              <span className="mini-flowers">
+                <Flower2 />
+                <Flower2 />
+                <Flower2 />
+              </span>
+              <span>
+                Ручная работа.
+                <br />
+                <b>Свобода быть собой.</b>
+              </span>
+            </div>
           </div>
-          <div className="product-info"><div><button className="product-name" onClick={event => openProduct(product, event)}>{product.name}</button><p>{product.stone}</p></div><button className="product-arrow icon-button" onClick={event => openProduct(product, event)} aria-label={`Открыть ${product.name}`}><ArrowUpRight size={23}/></button></div>
-        </article>)}</div>
-        <p className="demo-note">Вдохновение для будущей коллекции. Изображения созданы для демонстрации и не являются фотографиями изделий ENOSI.</p>
-      </section>
+          <div className="hero-visual">
+            <div className="hero-photo-wrap">
+              <img
+                key={heroProduct.id}
+                className="hero-image"
+                src={heroProduct.image}
+                alt={`Браслет ENOSI «${heroProduct.name}», ${heroProduct.palette.toLowerCase()}`}
+                fetchPriority="high"
+              />
+              <span className="hero-photo-kicker">
+                ПРИТЯЖЕНИЕ НАЧИНАЕТСЯ С ПЕРВОГО ВЗГЛЯДА
+              </span>
+              <button
+                className="hero-product-label"
+                onClick={(event) => openProduct(heroProduct, event)}
+              >
+                <span>
+                  <small>БРАСЛЕТ ENOSI</small>
+                  {heroProduct.name}
+                </span>
+                <span className="round-arrow">
+                  <ArrowUpRight size={22} />
+                </span>
+              </button>
+            </div>
+            <div className="hero-stamp">
+              <span>ПРИРОДА</span>
+              <Flower2 size={30} />
+              <span>ВСТРЕЧАЕТ ТВОРЧЕСТВО</span>
+            </div>
+          </div>
+          <div
+            className="hero-pagination"
+            role="group"
+            aria-label="Сочетание на первом экране"
+          >
+            {["Нежность", "Свежесть", "Характер"].map((name, index) => (
+              <button
+                key={name}
+                onClick={() => setHeroIndex(index)}
+                aria-pressed={heroIndex === index}
+                className={heroIndex === index ? "active" : ""}
+              >
+                <span>0{index + 1}</span>
+                {name}
+                <i />
+              </button>
+            ))}
+          </div>
+        </section>
 
-      <section className="philosophy" id="philosophy"><div className="philosophy-inner reveal"><Symbol className="philosophy-symbol"/><div className="eyebrow">ЕСТЕСТВЕННОЕ ПРИТЯЖЕНИЕ</div><h2>Красота не нуждается в объяснениях,<br/>чтобы <em>привлекать.</em></h2><p>Мы создаём украшения. А их личную историю<br className="desktop-break"/> вы определяете сами.</p><span className="handwritten">В этом и есть ENOSI.</span></div><span className="decorative-orbit orbit-one"/><span className="decorative-orbit orbit-two"/></section>
+        <div className="values-strip">
+          <span>
+            <Hand /> Создаём вручную
+          </span>
+          <Asterisk aria-hidden="true" />
+          <span>
+            <Gem /> Выбираем природную красоту
+          </span>
+          <Asterisk aria-hidden="true" />
+          <span>
+            <Flower2 /> Соединяем с удовольствием
+          </span>
+        </div>
 
-      <section className="story section-space" id="story" aria-labelledby="story-title">
-        <div className="story-art reveal"><div className="story-image" role="img" aria-label="Природные фактуры и украшение в мягком свете"/><div className="story-art-label"><Symbol/><span>разные элементы.<br/><em>одна гармония.</em></span></div><span className="vertical-note">THE ART OF COMING TOGETHER</span></div>
-        <div className="story-copy reveal"><div className="eyebrow">ДАВАЙТЕ ЗНАКОМИТЬСЯ</div><h2 id="story-title">Всё начинается<br/><em>с соединения.</em></h2><p className="lead">ENOSI — слово греческого происхождения,<br className="desktop-break"/> означающее «соединение», «союз».</p><p>У каждого камня свой оттенок, рисунок и характер. Когда они встречаются, рождается новая история. Именно эти встречи вдохновляют меня создавать украшения.</p><p>Я собираю браслеты вручную, небольшими партиями. Ищу красивые сочетания, прислушиваюсь к деталям — и оставляю вам самое главное: свободу выбирать то, что откликается именно вам.</p><a className="text-link" href="#craft">Ближе к деталям <MoveRight size={22}/></a><span className="story-signature">С любовью к красивым сочетаниям,<br/><span>ENOSI</span></span></div>
-      </section>
+        <section
+          className="collection section-space"
+          id="collection"
+          aria-labelledby="collection-title"
+        >
+          <div className="section-heading reveal">
+            <div>
+              <span className="eyebrow">
+                ЧЕТЫРЕ СОЧЕТАНИЯ. БЕСКОНЕЧНО МНОГО ВАС.
+              </span>
+              <h2 id="collection-title">
+                Сегодня я выбираю <em>себя.</em>
+              </h2>
+            </div>
+            <p>
+              Нежное или выразительное?
+              <br />
+              Пусть решает ваше «нравится».
+            </p>
+          </div>
+          <div className="collection-toolbar">
+            <div
+              className="filters"
+              role="group"
+              aria-label="Выбрать настроение"
+            >
+              {moods.map((item) => (
+                <button
+                  key={item.id}
+                  className={mood === item.id ? "filter active" : "filter"}
+                  aria-pressed={mood === item.id}
+                  onClick={() => setMood(item.id)}
+                >
+                  {item.color && (
+                    <span
+                      className="color-dot"
+                      style={{ background: item.color }}
+                    />
+                  )}{" "}
+                  {item.name}
+                </button>
+              ))}
+            </div>
+            <button
+              className={`favorites-filter ${onlyFavorites ? "active" : ""}`}
+              aria-pressed={onlyFavorites}
+              onClick={() => setOnlyFavorites(!onlyFavorites)}
+            >
+              <Heart size={14} />
+              <span>Мне нравится</span>
+              {favorites.length > 0 && <b>{favorites.length}</b>}
+            </button>
+          </div>
+          <div className="collection-status" aria-live="polite">
+            {onlyFavorites
+              ? `Избранные сочетания: ${visibleProducts.length}`
+              : `Найдено сочетаний: ${visibleProducts.length}`}
+          </div>
+          <div className="product-grid">
+            {visibleProducts.map((product) => (
+              <article className="product-card" key={product.id}>
+                <div className="product-picture">
+                  <button
+                    className="product-image-button"
+                    onClick={(event) => openProduct(product, event)}
+                    aria-label={`Подробнее: ${product.name}`}
+                  >
+                    <img
+                      src={product.image}
+                      alt={`Браслет «${product.name}»: ${product.palette.toLowerCase()}`}
+                      loading="lazy"
+                      width="750"
+                      height="1000"
+                    />
+                    <span className="view-product">
+                      Рассмотреть поближе <ArrowUpRight size={17} />
+                    </span>
+                  </button>
+                  <span className="product-tag">
+                    0{products.indexOf(product) + 1} / ENOSI
+                  </span>
+                  <button
+                    className={`favorite icon-button ${favorites.includes(product.id) ? "is-favorite" : ""}`}
+                    aria-label={`${favorites.includes(product.id) ? "Убрать из избранного" : "Добавить в избранное"}: ${product.name}`}
+                    aria-pressed={favorites.includes(product.id)}
+                    onClick={() => toggleFavorite(product.id)}
+                  >
+                    <Heart
+                      size={18}
+                      fill={
+                        favorites.includes(product.id) ? "currentColor" : "none"
+                      }
+                    />
+                  </button>
+                </div>
+                <div className="product-info">
+                  <span className="product-kicker">{product.tag}</span>
+                  <button
+                    className="product-name"
+                    onClick={(event) => openProduct(product, event)}
+                  >
+                    {product.name}
+                  </button>
+                  <p>{product.materials}</p>
+                  <button
+                    className="product-more"
+                    onClick={(event) => openProduct(product, event)}
+                  >
+                    Узнать ближе <ArrowUpRight size={16} />
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+          {visibleProducts.length === 0 && (
+            <div className="empty-state">
+              <Heart size={30} />
+              <h3>Здесь будут ваши сочетания</h3>
+              <p>
+                Нажмите на сердечко у понравившегося браслета.
+                <br />
+                Или посмотрите всю коллекцию.
+              </p>
+              <button
+                className="button primary"
+                onClick={() => {
+                  setOnlyFavorites(false);
+                  setMood("all");
+                }}
+              >
+                Все сочетания <ArrowRight size={18} />
+              </button>
+            </div>
+          )}
+          <div className="collection-note">
+            <span>
+              <span className="small-dot" /> Каждый браслет собран автором
+              вручную
+            </span>
+            <TelegramLink>
+              Помочь с выбором? Напишите Екатерине <ArrowUpRight size={15} />
+            </TelegramLink>
+          </div>
+        </section>
 
-      <section className="craft section-space" id="craft" aria-labelledby="craft-title"><div className="section-heading reveal"><div><div className="eyebrow">ЦЕННОСТЬ В ПРОСТЫХ ВЕЩАХ</div><h2 id="craft-title">Природа. Руки. <em>Детали.</em></h2></div><p>То, что делает украшение особенным,<br/>не всегда заметно с первого взгляда.</p></div><div className="craft-grid">
-        <article className="craft-card reveal"><span className="craft-number">01 / ПРИРОДА</span><div className="stone-art"><span/><span/><span/></div><h3>Нет двух одинаковых</h3><p>Тонкие прожилки, оттенки и переливы — естественные особенности натуральных камней. Они делают каждое сочетание неповторимым.</p></article>
-        <article className="craft-card reveal"><span className="craft-number">02 / ТВОРЧЕСТВО</span><div className="connection-art"><span/><span/><i/></div><h3>Собрано с вниманием</h3><p>От выбора бусин до последней детали — каждый браслет проходит через руки автора. Небольшие партии оставляют место творчеству.</p></article>
-        <article className="craft-card reveal"><span className="craft-number">03 / ВЫ</span><div className="freedom-art"><Symbol/></div><h3>Без заданных правил</h3><p>Носите по одному или соединяйте. Сочетайте с любимыми вещами, пробуйте новое. Здесь нет правильного выбора — есть ваш.</p></article>
-      </div></section>
+        <section className="manifesto" id="philosophy">
+          <div className="manifesto-inner reveal">
+            <span className="eyebrow">НАША ФИЛОСОФИЯ</span>
+            <h2>
+              Не по правилам.
+              <br />
+              <em>По любви.</em>
+              <Flower2 className="manifesto-flower" aria-hidden="true" />
+            </h2>
+            <p>
+              Красота не нуждается в объяснениях, чтобы привлекать.
+              <br className="desktop-break" /> Иногда достаточно взгляда и
+              простого: «Вот оно. Моё».
+            </p>
+            <a href="#collection" className="text-link">
+              Довериться своему вкусу <MoveRight size={24} />
+            </a>
+          </div>
+          <span className="manifesto-petal petal-one" />
+          <span className="manifesto-petal petal-two" />
+          <span className="manifesto-orbit" />
+        </section>
 
-      <section className="care section-space"><div className="care-title"><div className="eyebrow">НЕМНОГО ЗАБОТЫ</div><h2>Чтобы любимое<br/>оставалось <em>рядом.</em></h2><p>Простые ответы для первого знакомства.</p></div><div className="accordion">{[
-        ['Как выбрать размер браслета?', 'Измерьте запястье мягкой лентой без натяжения. Для свободной посадки обычно добавляют около 1–1,5 см. Точный размер и посадку будущих моделей мы уточним в их описании.'],
-        ['Как ухаживать за натуральными камнями?', 'Снимайте браслет перед душем, тренировкой и уборкой. Избегайте контакта с парфюмом и бытовой химией. Протирайте мягкой сухой тканью и храните отдельно от других украшений.'],
-        ['Можно ли уже заказать украшение?', 'Сейчас это первая демонстрационная версия ENOSI. Заказы и оплата ещё не открыты. Коллекция, фотографии реальных изделий и способы связи появятся после знакомства с дизайном.'],
-      ].map(([question, answer], index) => <div className="accordion-item" key={question}><h3><button aria-expanded={openQuestion === index} aria-controls={`answer-${index}`} onClick={() => setOpenQuestion(openQuestion === index ? null : index)}>{question}{openQuestion === index ? <Minus size={19}/> : <Plus size={19}/>}</button></h3><div id={`answer-${index}`} hidden={openQuestion !== index}><p>{answer}</p></div></div>)}</div></section>
+        <section
+          className="story section-space"
+          id="story"
+          aria-labelledby="story-title"
+        >
+          <div className="story-art reveal">
+            <img
+              className="story-photo"
+              src={products[1].wrist}
+              alt="Настоящий браслет ENOSI с мятно-зелёными и розовыми бусинами на запястье"
+              loading="lazy"
+              width="960"
+              height="1280"
+            />
+            <div className="story-caption">
+              <span className="eyebrow">ОТ АВТОРА — К ВАМ</span>
+              <span>
+                Красивые вещи
+                <br />
+                <em>находят своих людей.</em>
+              </span>
+            </div>
+            <span className="story-side-note">
+              NATURAL STONES. PERSONAL STORIES.
+            </span>
+          </div>
+          <div className="story-copy reveal">
+            <span className="eyebrow">ЕКАТЕРИНА · АВТОР ENOSI</span>
+            <h2 id="story-title">
+              Мне нравится
+              <br />
+              соединять.
+              <br />
+              <em>Вам — выбирать.</em>
+            </h2>
+            <p className="lead">
+              ENOSI означает «соединение».
+              <br />
+              Именно с него всё начинается.
+            </p>
+            <p>
+              Сочетать прохладный зелёный с мягким розовым. Гладкие бусины — с
+              неровными природными формами. Искать маленькую деталь, которая
+              соберёт всё воедино.
+            </p>
+            <p>
+              Я создаю браслеты вручную, небольшими партиями. Мне важно, чтобы
+              украшение хотелось рассматривать — и с удовольствием носить каждый
+              день.
+            </p>
+            <p>Я создаю украшения. А их личную историю вы определяете сами.</p>
+            <TelegramLink className="text-link">
+              Познакомиться с Екатериной <ArrowUpRight size={22} />
+            </TelegramLink>
+            <span className="author-signature">
+              С удовольствием создавать.
+              <br />
+              <em>С удовольствием выбирать.</em>
+            </span>
+          </div>
+        </section>
 
-      <section className="contact" id="contacts"><div className="contact-flower"><Symbol/></div><div className="eyebrow">У КРАСИВЫХ ИСТОРИЙ ЕСТЬ ПРОДОЛЖЕНИЕ</div><h2>Найдём ваше<br/><em>сочетание?</em></h2><p>Обсудить оттенки, задать вопрос или просто познакомиться.<br className="desktop-break"/> Каждой встрече мы будем рады.</p><button className="button primary" onClick={() => setContactOpen(true)}>Давайте знакомиться <ArrowUpRight size={18}/></button><span className="contact-note">Первая глава ENOSI. Скоро — больше.</span></section>
-    </main>
-    <footer className="footer"><div className="footer-top"><a className="wordmark" href="#" aria-label="ENOSI — наверх"><Symbol/><span>ENOSI</span></a><p>Авторские украшения.<br/>Естественное притяжение.</p><div><a href="#collection">Коллекция</a><a href="#story">О бренде</a><a href="#contacts">Контакты</a></div><a className="back-top" href="#">Наверх <ArrowUpRight size={17}/></a></div><div className="footer-bottom"><span>© {new Date().getFullYear()} ENOSI</span><span>Создаём с удовольствием. Выбираем сердцем.</span><span>Демонстрационная версия</span></div></footer>
+        <section
+          className="craft section-space"
+          id="craft"
+          aria-labelledby="craft-title"
+        >
+          <div className="section-heading reveal">
+            <div>
+              <span className="eyebrow">ТО, ИЗ ЧЕГО СКЛАДЫВАЕТСЯ ENOSI</span>
+              <h2 id="craft-title">
+                Внимание. В каждом <em>соединении.</em>
+              </h2>
+            </div>
+            <p>
+              Больше, чем красивое сочетание.
+              <br />
+              Меньше, чем громкие обещания.
+            </p>
+          </div>
+          <div className="craft-grid">
+            {[
+              {
+                number: "01",
+                icon: <Gem />,
+                title: "Природная красота",
+                text: "Рисунки, оттенки и фактуры камней интересны сами по себе. Мы выбираем природные материалы за их красоту и неповторимые сочетания.",
+              },
+              {
+                number: "02",
+                icon: <Hand />,
+                title: "Почерк автора",
+                text: "Порядок бусин, ритм оттенков, маленькая подвеска. Каждая деталь становится частью композиции, собранной вручную.",
+              },
+              {
+                number: "03",
+                icon: <Flower2 />,
+                title: "Свобода сочетать",
+                text: "С рубашкой или платьем. На каждый день или для особенного вечера. Украшение дополняет вас, а не диктует, какой вам быть.",
+              },
+            ].map((item) => (
+              <article className="craft-card reveal" key={item.number}>
+                <div className="craft-card-top">
+                  <span>{item.number} / ENOSI</span>
+                  {item.icon}
+                </div>
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </article>
+            ))}
+          </div>
+        </section>
 
-    {modalOpen && <div className="modal-backdrop" onClick={event => { if (event.target === event.currentTarget) { setSelected(null); setContactOpen(false); } }}><div className={`modal ${selected ? 'product-modal' : 'contact-modal'}`} role="dialog" aria-modal="true" aria-labelledby="dialog-title" ref={dialog}><button className="modal-close icon-button" aria-label="Закрыть окно" onClick={() => { setSelected(null); setContactOpen(false); }}><X/></button>{selected ? <><div className={`modal-image product-${selected.image}`}><span className="product-photo" role="img" aria-label={`Демонстрационное украшение ${selected.name}`}/></div><div className="modal-copy"><div className="eyebrow">ЭСКИЗ БУДУЩЕЙ КОЛЛЕКЦИИ</div><h2 id="dialog-title">{selected.name}</h2><p className="modal-stone">{selected.stone}</p><p>{selected.description}</p><p className="modal-disclaimer">Это демонстрационная модель. Состав, фотографии и наличие реальных изделий будут добавлены позже.</p><button className="button primary" onClick={() => toggleFavorite(selected.id)}>{favorites.includes(selected.id) ? <>Сочетание сохранено <Check size={18}/></> : <>Мне нравится <Heart size={18}/></>}</button><span className="save-note">Выбор сохранится до перезагрузки страницы.</span></div></> : <div className="modal-copy"><Symbol className="contact-dialog-symbol"/><div className="eyebrow">НАЧАЛО КРАСИВОЙ ИСТОРИИ</div><h2 id="dialog-title">Будем на связи</h2><p>Здесь скоро появятся настоящие контакты ENOSI — можно будет написать автору, обсудить украшение и познакомиться поближе.</p><p className="modal-disclaimer">Это демонстрация будущего сайта. Сообщения пока не отправляются, а личные данные не собираются.</p><button className="button primary" onClick={() => setContactOpen(false)}>Продолжить знакомство <ArrowRight size={18}/></button></div>}</div></div>}
-  </>;
+        <section className="looks section-space" aria-labelledby="looks-title">
+          <div className="section-heading reveal">
+            <div>
+              <span className="eyebrow">УКРАШЕНИЕ В ВАШЕЙ ИСТОРИИ</span>
+              <h2 id="looks-title">
+                Для жизни.
+                <br />
+                <em>И всех её настроений.</em>
+              </h2>
+            </div>
+            <p>
+              Настоящие фотографии автора.
+              <br />
+              Можно представить на своём запястье.
+            </p>
+          </div>
+          <div className="looks-grid">
+            <button
+              className="look-card"
+              onClick={(event) => openProduct(products[0], event)}
+            >
+              <img
+                src={products[0].wrist}
+                alt="Светлый браслет ENOSI с розовыми и жемчужными бусинами на руке"
+                loading="lazy"
+              />
+              <span>
+                <small>КОГДА ХОЧЕТСЯ НЕЖНОСТИ</small>Маленький светлый акцент{" "}
+                <ArrowUpRight />
+              </span>
+            </button>
+            <div className="look-quote">
+              <Asterisk size={44} />
+              <p>
+                У вас есть
+                <br />
+                право быть
+                <br />
+                <em>разной.</em>
+              </p>
+              <span>И КАЖДЫЙ РАЗ — СОБОЙ.</span>
+            </div>
+            <button
+              className="look-card"
+              onClick={(event) => openProduct(products[3], event)}
+            >
+              <img
+                src={products[3].wrist}
+                alt="Контрастный фиолетово-чёрный браслет ENOSI на запястье"
+                loading="lazy"
+              />
+              <span>
+                <small>КОГДА ХОЧЕТСЯ ХАРАКТЕРА</small>Красивый повод выделиться{" "}
+                <ArrowUpRight />
+              </span>
+            </button>
+          </div>
+        </section>
+
+        <section className="care section-space" aria-labelledby="care-title">
+          <div className="care-title">
+            <span className="eyebrow">ПЕРЕД ПЕРВЫМ ЗНАКОМСТВОМ</span>
+            <h2 id="care-title">
+              Всё просто.
+              <br />И с <em>заботой.</em>
+            </h2>
+            <p>
+              О выборе, размере и маленьких
+              <br />
+              привычках, которые берегут украшения.
+            </p>
+          </div>
+          <div className="accordion">
+            {questions.map(([question, answer], index) => (
+              <div className="accordion-item" key={question}>
+                <h3>
+                  <button
+                    aria-expanded={openQuestion === index}
+                    aria-controls={`answer-${index}`}
+                    onClick={() =>
+                      setOpenQuestion(openQuestion === index ? null : index)
+                    }
+                  >
+                    {question}
+                    {openQuestion === index ? (
+                      <Minus size={19} />
+                    ) : (
+                      <Plus size={19} />
+                    )}
+                  </button>
+                </h3>
+                <div id={`answer-${index}`} hidden={openQuestion !== index}>
+                  <p>{answer}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="contact" id="contacts">
+          <div className="contact-inner reveal">
+            <span className="eyebrow">ОДНО СООБЩЕНИЕ — НАЧАЛО ЗНАКОМСТВА</span>
+            <h2>
+              Давайте найдём
+              <br />
+              <em>ваше сочетание.</em>
+              <Asterisk className="contact-star" aria-hidden="true" />
+            </h2>
+            <p>
+              Помогу выбрать оттенки, расскажу о деталях
+              <br className="desktop-break" /> и отвечу на вопросы. Просто
+              напишите мне.
+            </p>
+            <TelegramLink className="button contact-button">
+              <Send size={18} /> Написать Екатерине <ArrowUpRight size={20} />
+            </TelegramLink>
+            <TelegramLink className="contact-handle">
+              @BeliakovaKaterina
+            </TelegramLink>
+            <span className="contact-person">
+              Лично автору. Без форм и лишних шагов.
+            </span>
+          </div>
+          <div className="contact-petal contact-petal-one" />
+          <div className="contact-petal contact-petal-two" />
+        </section>
+      </main>
+      <footer className="footer">
+        <div className="footer-top">
+          <Brand footer />
+          <p>
+            Авторские украшения из натуральных камней.
+            <br />
+            Красота, к которой тянет.
+          </p>
+          <div className="footer-links">
+            <a href="#collection">Коллекция</a>
+            <a href="#story">О бренде</a>
+            <TelegramLink>
+              Telegram <ArrowUpRight size={13} />
+            </TelegramLink>
+          </div>
+          <a className="back-top" href="#top">
+            Наверх <ArrowUpRight size={17} />
+          </a>
+        </div>
+        <div className="footer-bottom">
+          <span>© {new Date().getFullYear()} ENOSI</span>
+          <span>Создаём с удовольствием. Выбираем сердцем.</span>
+          <span>Ручная работа · небольшие партии</span>
+        </div>
+        <p className="photo-note">
+          Оформление фотографий адаптировано к стилю ENOSI. Оригинальные снимки
+          доступны в карточках украшений. Состав, размер, стоимость и наличие
+          уточняйте у автора.
+        </p>
+      </footer>
+
+      {selected && (
+        <div
+          className="modal-backdrop"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setSelected(null);
+          }}
+        >
+          <div
+            className="modal product-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dialog-title"
+            ref={dialog}
+          >
+            <button
+              className="modal-close icon-button"
+              aria-label="Закрыть окно"
+              onClick={() => setSelected(null)}
+            >
+              <X />
+            </button>
+            <div className="modal-gallery">
+              <div className="modal-image">
+                <img
+                  src={selected.galleries[photoIndex].image}
+                  alt={`${selected.name} — ${selected.galleries[photoIndex].label.toLowerCase()}`}
+                />
+                <span className="gallery-label">
+                  {selected.galleries[photoIndex].label}
+                </span>
+                <button
+                  className="gallery-prev icon-button"
+                  aria-label="Предыдущее фото"
+                  onClick={() =>
+                    setPhotoIndex(
+                      (photoIndex - 1 + selected.galleries.length) %
+                        selected.galleries.length,
+                    )
+                  }
+                >
+                  <ArrowLeft size={18} />
+                </button>
+                <button
+                  className="gallery-next icon-button"
+                  aria-label="Следующее фото"
+                  onClick={() =>
+                    setPhotoIndex((photoIndex + 1) % selected.galleries.length)
+                  }
+                >
+                  <ArrowRight size={18} />
+                </button>
+              </div>
+              <div
+                className="gallery-thumbnails"
+                role="group"
+                aria-label="Ракурсы украшения"
+              >
+                {selected.galleries.map((photo, index) => (
+                  <button
+                    key={photo.label}
+                    className={photoIndex === index ? "active" : ""}
+                    aria-pressed={photoIndex === index}
+                    onClick={() => setPhotoIndex(index)}
+                  >
+                    <img src={photo.image} alt="" />
+                    <span>{photo.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="modal-copy">
+              <span className="eyebrow">АВТОРСКОЕ СОЧЕТАНИЕ ENOSI</span>
+              <h2 id="dialog-title">{selected.name}</h2>
+              <p className="modal-palette">{selected.materials}</p>
+              <p>{selected.description}</p>
+              <p className="product-detail">{selected.detail}</p>
+              <div className="modal-information">
+                <span>
+                  <Hand size={16} /> Ручная работа
+                </span>
+                <span>
+                  <Gem size={16} /> Природные фактуры
+                </span>
+              </div>
+              <TelegramLink
+                className="button primary product-contact"
+                product={selected}
+              >
+                Уточнить детали у автора <ArrowUpRight size={18} />
+              </TelegramLink>
+              <button
+                className={`save-product ${favorites.includes(selected.id) ? "is-favorite" : ""}`}
+                onClick={() => toggleFavorite(selected.id)}
+              >
+                {favorites.includes(selected.id) ? (
+                  <>
+                    <Check size={17} /> Сочетание сохранено
+                  </>
+                ) : (
+                  <>
+                    <Heart size={17} /> Мне нравится
+                  </>
+                )}
+              </button>
+              <p className="modal-disclaimer">
+                Состав, размер, стоимость и наличие уточним лично в Telegram.
+                Оттенок камней может немного отличаться в зависимости от экрана.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
-createRoot(document.getElementById('root')).render(<App/>);
+createRoot(document.getElementById("root")).render(<App />);
