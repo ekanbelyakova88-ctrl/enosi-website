@@ -12,10 +12,8 @@ import {
   Check,
   Send,
   MoveRight,
-  Flower2,
   Gem,
   Hand,
-  Asterisk,
 } from "lucide-react";
 import "@fontsource/cormorant-garamond/latin-400.css";
 import "@fontsource/cormorant-garamond/cyrillic-400.css";
@@ -26,7 +24,8 @@ import "@fontsource/manrope/cyrillic-400.css";
 import "@fontsource/manrope/latin-500.css";
 import "@fontsource/manrope/cyrillic-500.css";
 import { products, moods, TELEGRAM_URL, contactFor } from "./data/products";
-import logo from "./assets/logo-enosi.jpg";
+import { stones, productStones } from "./data/stones";
+import logo from "./assets/logo-enosi-transparent.png";
 import "./styles.css";
 
 const heroProducts = [products[0], products[1], products[3]];
@@ -45,7 +44,7 @@ const questions = [
   ],
   [
     "Будет ли мой браслет точно как на фото?",
-    "В коллекции показаны украшения автора. У натуральных камней возможны небольшие различия рисунка и оттенка. В карточке доступны оригинальные фотографии; детали конкретного браслета можно обсудить с Екатериной.",
+    "Фотографии украшений оформлены в едином стиле ENOSI на основе снимков автора. У натуральных камней возможны различия рисунка и оттенка. Детали конкретного браслета и дополнительные фотографии можно обсудить с Екатериной.",
   ],
 ];
 
@@ -69,8 +68,82 @@ function Brand({ footer = false }) {
       href="#top"
       aria-label="ENOSI — на главную"
     >
-      <img src={logo} alt="Логотип ENOSI" width="178" height="108" />
+      <img src={logo} alt="Логотип ENOSI" width="1610" height="977" />
     </a>
+  );
+}
+
+function BrandedPhoto({
+  src,
+  alt,
+  className = "",
+  imageClassName = "",
+  loading = "lazy",
+  fetchPriority,
+}) {
+  return (
+    <span className={`branded-photo ${className}`}>
+      <img
+        className={`branded-image ${imageClassName}`}
+        src={src}
+        alt={alt}
+        loading={loading}
+        fetchPriority={fetchPriority}
+        width="750"
+        height="1000"
+      />
+      <span className="photo-watermark" aria-hidden="true">
+        <img src={logo} alt="" />
+      </span>
+    </span>
+  );
+}
+
+function StoneCard({ product }) {
+  return (
+    <article
+      className="stone-card"
+      aria-label={`Камни браслета «${product.name}»`}
+    >
+      <header className="stone-card-heading">
+        <h3>
+          Натуральные камни
+          <br />в гармонии
+        </h3>
+        <img src={logo} alt="ENOSI" />
+      </header>
+      <p className="stone-card-product">{product.name}</p>
+      <div className="stone-rows">
+        {productStones[product.id].map((id) => {
+          const stone = stones[id];
+          return (
+            <section className="stone-row" key={id} aria-label={stone.name}>
+              <span
+                className={`stone-swatch stone-${id}`}
+                style={{ backgroundPosition: stone.position }}
+                role="img"
+                aria-label={`Иллюстрация: ${stone.name.toLowerCase()}`}
+              />
+              <div>
+                <h4>
+                  {stone.name}
+                  {product.id === "forest-story" && id === "roseQuartz"
+                    ? " · крошка"
+                    : ""}
+                </h4>
+                <span className="stone-meaning">{stone.meaning}</span>
+                <p>{stone.description}</p>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+      <p className="stone-card-note">
+        Образы и ассоциации ENOSI.
+        <br />
+        Свой личный смысл выбираете вы.
+      </p>
+    </article>
   );
 }
 
@@ -80,6 +153,7 @@ function App() {
   const [heroIndex, setHeroIndex] = useState(0);
   const [selected, setSelected] = useState(null);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [galleryMode, setGalleryMode] = useState("photos");
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [favorites, setFavorites] = useState(() => {
     try {
@@ -169,6 +243,7 @@ function App() {
   function openProduct(product, event) {
     trigger.current = event.currentTarget;
     setPhotoIndex(0);
+    setGalleryMode("photos");
     setSelected(product);
   }
   function toggleFavorite(id) {
@@ -248,15 +323,11 @@ function App() {
         <section className="hero" aria-labelledby="hero-title">
           <div className="hero-copy">
             <span className="eyebrow">
-              <span className="tiny-spark" /> АВТОРСКИЕ УКРАШЕНИЯ ИЗ НАТУРАЛЬНЫХ
-              КАМНЕЙ
+              АВТОРСКИЕ УКРАШЕНИЯ ИЗ НАТУРАЛЬНЫХ КАМНЕЙ
             </span>
             <h1 id="hero-title">
-              Красота,
-              <br />к которой
-              <br />
+              Красота, <span className="hero-phrase">к которой</span>{" "}
               <em>тянет.</em>
-              <Asterisk className="heading-star" aria-hidden="true" />
             </h1>
             <p>
               Соединяем оттенки, фактуры и маленькие детали.
@@ -271,31 +342,17 @@ function App() {
                 Познакомиться с ENOSI <ArrowRight size={17} />
               </a>
             </div>
-            <div className="hero-bottom">
-              <span className="mini-flowers">
-                <Flower2 />
-                <Flower2 />
-                <Flower2 />
-              </span>
-              <span>
-                Ручная работа.
-                <br />
-                <b>Свобода быть собой.</b>
-              </span>
-            </div>
           </div>
           <div className="hero-visual">
             <div className="hero-photo-wrap">
-              <img
+              <BrandedPhoto
                 key={heroProduct.id}
-                className="hero-image"
+                imageClassName="hero-image"
                 src={heroProduct.image}
                 alt={`Браслет ENOSI «${heroProduct.name}», ${heroProduct.palette.toLowerCase()}`}
                 fetchPriority="high"
+                loading="eager"
               />
-              <span className="hero-photo-kicker">
-                ПРИТЯЖЕНИЕ НАЧИНАЕТСЯ С ПЕРВОГО ВЗГЛЯДА
-              </span>
               <button
                 className="hero-product-label"
                 onClick={(event) => openProduct(heroProduct, event)}
@@ -309,11 +366,11 @@ function App() {
                 </span>
               </button>
             </div>
-            <div className="hero-stamp">
-              <span>ПРИРОДА</span>
-              <Flower2 size={30} />
-              <span>ВСТРЕЧАЕТ ТВОРЧЕСТВО</span>
-            </div>
+            <BrandedPhoto
+              className="hero-angle"
+              src={heroProduct.wrist}
+              alt={`Браслет «${heroProduct.name}» на запястье`}
+            />
           </div>
           <div
             className="hero-pagination"
@@ -339,13 +396,11 @@ function App() {
           <span>
             <Hand /> Создаём вручную
           </span>
-          <Asterisk aria-hidden="true" />
           <span>
             <Gem /> Выбираем природную красоту
           </span>
-          <Asterisk aria-hidden="true" />
           <span>
-            <Flower2 /> Соединяем с удовольствием
+            <Heart /> Соединяем с удовольствием
           </span>
         </div>
 
@@ -416,12 +471,10 @@ function App() {
                     onClick={(event) => openProduct(product, event)}
                     aria-label={`Подробнее: ${product.name}`}
                   >
-                    <img
+                    <BrandedPhoto
                       src={product.image}
                       alt={`Браслет «${product.name}»: ${product.palette.toLowerCase()}`}
                       loading="lazy"
-                      width="750"
-                      height="1000"
                     />
                     <span className="view-product">
                       Рассмотреть поближе <ArrowUpRight size={17} />
@@ -458,6 +511,16 @@ function App() {
                     onClick={(event) => openProduct(product, event)}
                   >
                     Узнать ближе <ArrowUpRight size={16} />
+                  </button>
+                  <button
+                    className="product-stones"
+                    aria-label={`Камни и смысл: ${product.name}`}
+                    onClick={(event) => {
+                      openProduct(product, event);
+                      setGalleryMode("stones");
+                    }}
+                  >
+                    <Gem size={13} /> Камни и смысл
                   </button>
                 </div>
               </article>
@@ -501,7 +564,6 @@ function App() {
               Не по правилам.
               <br />
               <em>По любви.</em>
-              <Flower2 className="manifesto-flower" aria-hidden="true" />
             </h2>
             <p>
               Красота не нуждается в объяснениях, чтобы привлекать.
@@ -523,13 +585,11 @@ function App() {
           aria-labelledby="story-title"
         >
           <div className="story-art reveal">
-            <img
+            <BrandedPhoto
               className="story-photo"
               src={products[1].wrist}
-              alt="Настоящий браслет ENOSI с мятно-зелёными и розовыми бусинами на запястье"
+              alt="Браслет ENOSI с мятно-зелёными и розовыми бусинами на запястье, фотография в стиле бренда"
               loading="lazy"
-              width="960"
-              height="1280"
             />
             <div className="story-caption">
               <span className="eyebrow">ОТ АВТОРА — К ВАМ</span>
@@ -613,7 +673,7 @@ function App() {
               },
               {
                 number: "03",
-                icon: <Flower2 />,
+                icon: <Heart />,
                 title: "Свобода сочетать",
                 text: "С рубашкой или платьем. На каждый день или для особенного вечера. Украшение дополняет вас, а не диктует, какой вам быть.",
               },
@@ -641,7 +701,7 @@ function App() {
               </h2>
             </div>
             <p>
-              Настоящие фотографии автора.
+              Фотографии в стиле ENOSI.
               <br />
               Можно представить на своём запястье.
             </p>
@@ -651,7 +711,7 @@ function App() {
               className="look-card"
               onClick={(event) => openProduct(products[0], event)}
             >
-              <img
+              <BrandedPhoto
                 src={products[0].wrist}
                 alt="Светлый браслет ENOSI с розовыми и жемчужными бусинами на руке"
                 loading="lazy"
@@ -662,7 +722,6 @@ function App() {
               </span>
             </button>
             <div className="look-quote">
-              <Asterisk size={44} />
               <p>
                 У вас есть
                 <br />
@@ -676,7 +735,7 @@ function App() {
               className="look-card"
               onClick={(event) => openProduct(products[3], event)}
             >
-              <img
+              <BrandedPhoto
                 src={products[3].wrist}
                 alt="Контрастный фиолетово-чёрный браслет ENOSI на запястье"
                 loading="lazy"
@@ -736,7 +795,6 @@ function App() {
               Давайте найдём
               <br />
               <em>ваше сочетание.</em>
-              <Asterisk className="contact-star" aria-hidden="true" />
             </h2>
             <p>
               Помогу выбрать оттенки, расскажу о деталях
@@ -782,9 +840,9 @@ function App() {
           <span>Ручная работа · небольшие партии</span>
         </div>
         <p className="photo-note">
-          Оформление фотографий адаптировано к стилю ENOSI. Оригинальные снимки
-          доступны в карточках украшений. Состав, размер, стоимость и наличие
-          уточняйте у автора.
+          Все фотографии подготовлены в единой стилистике ENOSI на основе
+          снимков украшений автора. Состав, размер, стоимость и наличие
+          уточняйте лично у Екатерины.
         </p>
       </footer>
 
@@ -810,53 +868,79 @@ function App() {
               <X />
             </button>
             <div className="modal-gallery">
-              <div className="modal-image">
-                <img
-                  src={selected.galleries[photoIndex].image}
-                  alt={`${selected.name} — ${selected.galleries[photoIndex].label.toLowerCase()}`}
-                />
-                <span className="gallery-label">
-                  {selected.galleries[photoIndex].label}
-                </span>
-                <button
-                  className="gallery-prev icon-button"
-                  aria-label="Предыдущее фото"
-                  onClick={() =>
-                    setPhotoIndex(
-                      (photoIndex - 1 + selected.galleries.length) %
-                        selected.galleries.length,
-                    )
-                  }
-                >
-                  <ArrowLeft size={18} />
-                </button>
-                <button
-                  className="gallery-next icon-button"
-                  aria-label="Следующее фото"
-                  onClick={() =>
-                    setPhotoIndex((photoIndex + 1) % selected.galleries.length)
-                  }
-                >
-                  <ArrowRight size={18} />
-                </button>
-              </div>
               <div
-                className="gallery-thumbnails"
+                className="gallery-modes"
                 role="group"
-                aria-label="Ракурсы украшения"
+                aria-label="Содержимое карточки"
               >
-                {selected.galleries.map((photo, index) => (
-                  <button
-                    key={photo.label}
-                    className={photoIndex === index ? "active" : ""}
-                    aria-pressed={photoIndex === index}
-                    onClick={() => setPhotoIndex(index)}
-                  >
-                    <img src={photo.image} alt="" />
-                    <span>{photo.label}</span>
-                  </button>
-                ))}
+                <button
+                  aria-pressed={galleryMode === "photos"}
+                  onClick={() => setGalleryMode("photos")}
+                >
+                  Фотографии
+                </button>
+                <button
+                  aria-pressed={galleryMode === "stones"}
+                  onClick={() => setGalleryMode("stones")}
+                >
+                  Камни и смысл
+                </button>
               </div>
+              {galleryMode === "stones" ? (
+                <StoneCard product={selected} />
+              ) : (
+                <>
+                  <div className="modal-image">
+                    <BrandedPhoto
+                      src={selected.galleries[photoIndex].image}
+                      alt={`${selected.name} — ${selected.galleries[photoIndex].label.toLowerCase()}`}
+                    />
+                    <span className="gallery-label">
+                      {selected.galleries[photoIndex].label}
+                    </span>
+                    <button
+                      className="gallery-prev icon-button"
+                      aria-label="Предыдущее фото"
+                      onClick={() =>
+                        setPhotoIndex(
+                          (photoIndex - 1 + selected.galleries.length) %
+                            selected.galleries.length,
+                        )
+                      }
+                    >
+                      <ArrowLeft size={18} />
+                    </button>
+                    <button
+                      className="gallery-next icon-button"
+                      aria-label="Следующее фото"
+                      onClick={() =>
+                        setPhotoIndex(
+                          (photoIndex + 1) % selected.galleries.length,
+                        )
+                      }
+                    >
+                      <ArrowRight size={18} />
+                    </button>
+                  </div>
+                  <div
+                    className="gallery-thumbnails"
+                    role="group"
+                    aria-label="Ракурсы украшения"
+                  >
+                    {selected.galleries.map((photo, index) => (
+                      <button
+                        key={photo.label}
+                        className={photoIndex === index ? "active" : ""}
+                        aria-pressed={photoIndex === index}
+                        onClick={() => setPhotoIndex(index)}
+                      >
+                        <BrandedPhoto src={photo.image} alt="" />
+                        <span>{photo.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
             <div className="modal-copy">
               <span className="eyebrow">АВТОРСКОЕ СОЧЕТАНИЕ ENOSI</span>

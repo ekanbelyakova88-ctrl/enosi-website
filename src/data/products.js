@@ -1,17 +1,19 @@
-import pearl from "../assets/products/pearl.webp";
-import sage from "../assets/products/sage.webp";
-import leaf from "../assets/products/leaf.webp";
-import violet from "../assets/products/violet.webp";
-import pearlOriginal from "../assets/originals/pearl-detail.jpg";
-import pearlWrist from "../assets/originals/pearl-wrist.jpg";
-import sageOriginal from "../assets/originals/sage-detail.jpg";
-import sageWrist from "../assets/originals/sage-wrist.jpg";
-import leafOriginal from "../assets/originals/leaf-detail.jpg";
-import leafWrist from "../assets/originals/leaf-wrist.jpg";
-import leafClose from "../assets/originals/leaf-close.jpg";
-import violetOriginal from "../assets/originals/violet-detail.jpg";
-import violetWrist from "../assets/originals/violet-wrist.jpg";
-import violetClose from "../assets/originals/violet-close.jpg";
+const generatedPhotos = import.meta.glob("../assets/gallery/*.webp", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+const photo = (number) =>
+  generatedPhotos[`../assets/gallery/${String(number).padStart(2, "0")}.webp`];
+const angle = (number, label) => ({
+  image: photo(number),
+  label,
+  sourceNumber: number,
+});
+const pearl = photo(17),
+  sage = photo(1),
+  leaf = photo(7),
+  violet = photo(11);
 
 export const TELEGRAM_URL = "https://t.me/BeliakovaKaterina";
 export const contactFor = (product) =>
@@ -27,16 +29,17 @@ export const products = [
     mood: "soft",
     tag: "НЕЖНОСТЬ В ДЕТАЛЯХ",
     image: pearl,
-    original: pearlOriginal,
-    wrist: pearlWrist,
+    wrist: photo(21),
     description:
       "Мягкий розовый, прозрачные грани и жемчужные переливы. Светлое сочетание, которое хочется носить и с любимой рубашкой, и с платьем на особенный вечер.",
     detail:
       "В этом сочетании встречаются гладкие, гранёные и жемчужные бусины. Их ритм и порядок сохранены по фотографиям автора.",
     galleries: [
-      { image: pearl, label: "В стиле ENOSI" },
-      { image: pearlOriginal, label: "Фото автора" },
-      { image: pearlWrist, label: "На запястье" },
+      angle(17, "Предметное фото"),
+      angle(18, "Другой ракурс"),
+      angle(19, "Крупный план"),
+      angle(20, "Детали"),
+      angle(21, "На запястье"),
     ],
   },
   {
@@ -47,16 +50,16 @@ export const products = [
     mood: "soft",
     tag: "ПРИРОДНОЕ ПРИТЯЖЕНИЕ",
     image: sage,
-    original: sageOriginal,
-    wrist: sageWrist,
+    wrist: photo(3),
     description:
       "Прохладный мятный оттенок встречается с полупрозрачным розовым. Лаконичный ритм круглых бусин — для лёгких образов и маленьких повседневных радостей.",
     detail:
       "Двадцать круглых бусин: десять мятно-зелёных и десять розовых, с чередованием оттенков. Без подвесок и разделителей.",
     galleries: [
-      { image: sage, label: "В стиле ENOSI" },
-      { image: sageOriginal, label: "Фото автора" },
-      { image: sageWrist, label: "На запястье" },
+      angle(1, "Предметное фото"),
+      angle(2, "Другой ракурс"),
+      angle(3, "На запястье"),
+      angle(4, "На ладони"),
     ],
   },
   {
@@ -67,17 +70,18 @@ export const products = [
     mood: "green",
     tag: "У КАЖДОГО СВОЙ ХАРАКТЕР",
     image: leaf,
-    original: leafOriginal,
-    wrist: leafWrist,
+    wrist: photo(10),
     description:
       "Глубокий зелёный, розовые камни свободной формы и маленький золотистый лист. Живое, немного неожиданное сочетание фактур — как находка на любимой прогулке.",
     detail:
-      "Круглые бусины, камни неправильной формы, небольшие разделители и подвеска-лист. В оригинальных фото можно рассмотреть каждую деталь.",
+      "Круглые бусины, камни неправильной формы, небольшие разделители и подвеска-лист. Рассмотрите разные ракурсы и вид на запястье.",
     galleries: [
-      { image: leaf, label: "В стиле ENOSI" },
-      { image: leafOriginal, label: "Фото автора" },
-      { image: leafWrist, label: "На запястье" },
-      { image: leafClose, label: "Детали" },
+      angle(7, "Предметное фото"),
+      angle(5, "Общий план"),
+      angle(6, "На ладони"),
+      angle(8, "Крупный план"),
+      angle(9, "На руке"),
+      angle(10, "На запястье"),
     ],
   },
   {
@@ -88,17 +92,18 @@ export const products = [
     mood: "contrast",
     tag: "ВЫРАЗИТЕЛЬНОЕ СОЧЕТАНИЕ",
     image: violet,
-    original: violetOriginal,
-    wrist: violetWrist,
+    wrist: photo(15),
     description:
       "Насыщенный фиолетовый и светлый розовый рядом с чёрными фактурными бусинами. Контраст, который становится красивым акцентом в спокойном образе.",
     detail:
       "Гладкие камни и четыре чёрные фактурные бусины с серебристыми ажурными деталями. У одной фиолетовой бусины особенно светлый, лавандовый оттенок.",
     galleries: [
-      { image: violet, label: "В стиле ENOSI" },
-      { image: violetOriginal, label: "Фото автора" },
-      { image: violetWrist, label: "На запястье" },
-      { image: violetClose, label: "Детали" },
+      angle(11, "Предметное фото"),
+      angle(12, "На руке"),
+      angle(13, "Детали"),
+      angle(14, "Другой ракурс"),
+      angle(15, "На запястье"),
+      angle(16, "Крупный план"),
     ],
   },
 ];

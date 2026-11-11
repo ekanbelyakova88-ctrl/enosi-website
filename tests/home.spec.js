@@ -49,7 +49,7 @@ test("mood filters show the matching real bracelets", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("gallery contains styled photo, unmodified original and wrist view", async ({
+test("gallery contains only generated product angles and wrist view", async ({
   page,
 }) => {
   await page.goto("/");
@@ -63,22 +63,22 @@ test("gallery contains styled photo, unmodified original and wrist view", async 
     "Розовый кварц · горный хрусталь · жемчуг",
   );
   await dialog
-    .getByRole("button", { name: "Фото автора", exact: true })
+    .getByRole("button", { name: "Другой ракурс", exact: true })
     .click();
-  await expect(dialog.locator(".modal-image img")).toHaveAttribute(
+  await expect(dialog.locator(".modal-image .branded-image")).toHaveAttribute(
     "src",
-    /pearl-detail/,
+    /\/18[.-]/,
   );
   await dialog
     .getByRole("button", { name: "На запястье", exact: true })
     .click();
-  await expect(dialog.locator(".modal-image img")).toHaveAttribute(
+  await expect(dialog.locator(".modal-image .branded-image")).toHaveAttribute(
     "src",
-    /pearl-wrist/,
+    /\/21[.-]/,
   );
   await dialog.getByRole("button", { name: "Следующее фото" }).click();
   await expect(
-    dialog.getByRole("button", { name: "В стиле ENOSI", exact: true }),
+    dialog.getByRole("button", { name: "Предметное фото", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
@@ -244,4 +244,139 @@ test("page and product dialog meet WCAG AA automated accessibility checks", asyn
       })),
     })),
   ).toEqual([]);
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Камни и смысл", exact: true })
+    .click();
+  const card = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+    .analyze();
+  expect(
+    card.violations.map((v) => ({
+      id: v.id,
+      nodes: v.nodes.map((n) => ({
+        target: n.target,
+        summary: n.failureSummary,
+      })),
+    })),
+  ).toEqual([]);
+});
+
+test("transparent logo and centered heading have no decorative stars", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() => document.fonts.ready);
+  const logo = page.getByAltText("Логотип ENOSI").first();
+  await expect
+    .poll(() =>
+      logo.evaluate((image) => image.complete && image.naturalWidth > 0),
+    )
+    .toBe(true);
+  const alpha = await logo.evaluate((image) => {
+    const c = document.createElement("canvas");
+    c.width = image.naturalWidth;
+    c.height = image.naturalHeight;
+    const x = c.getContext("2d");
+    x.drawImage(image, 0, 0);
+    return [
+      [0, 0],
+      [c.width - 1, 0],
+      [0, c.height - 1],
+      [c.width - 1, c.height - 1],
+    ].map(([a, b]) => x.getImageData(a, b, 1, 1).data[3]);
+  });
+  expect(alpha).toEqual([0, 0, 0, 0]);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCSS(
+    "text-align",
+    "center",
+  );
+  const position = await page
+    .getByRole("heading", { level: 1 })
+    .evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return Math.abs((r.left + r.right) / 2 - innerWidth / 2);
+    });
+  expect(position).toBeLessThan(2);
+  await expect(page.locator("h1 svg, h2 svg, .lucide-asterisk")).toHaveCount(0);
+  for (const photo of await page.locator("main .branded-photo").all())
+    await expect(photo.locator(".photo-watermark img")).toHaveAttribute(
+      "src",
+      /logo-enosi-transparent/,
+    );
+});
+
+test("all 21 uploaded angles have generated branded counterparts in the galleries", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const sources = new Set();
+  for (const [name, count] of [
+    ["Нежное равновесие", 5],
+    ["На одной волне", 4],
+    ["Лесная история", 6],
+    ["После заката", 6],
+  ]) {
+    await page.getByRole("button", { name: `Подробнее: ${name}` }).click();
+    const dialog = page.getByRole("dialog");
+    const thumbs = dialog.locator(".gallery-thumbnails button");
+    await expect(thumbs).toHaveCount(count);
+    for (let i = 0; i < count; i++) {
+      await thumbs.nth(i).click();
+      const image = dialog.locator(".modal-image .branded-image");
+      await expect
+        .poll(() =>
+          image.evaluate((img) => img.complete && img.naturalWidth > 0),
+        )
+        .toBe(true);
+      const src = await image.getAttribute("src");
+      expect(src).toMatch(/\/gallery\/\d{2}\.webp/);
+      sources.add(src);
+      await expect(
+        dialog.locator(".modal-image .photo-watermark img"),
+      ).toBeVisible();
+    }
+    await expect(
+      dialog.getByRole("button", { name: "Фото автора", exact: true }),
+    ).toHaveCount(0);
+    await page.keyboard.press("Escape");
+  }
+  expect(sources.size).toBe(21);
+});
+
+test("each bracelet has a material card with editorial symbolism", async ({
+  page,
+}) => {
+  await page.goto("/");
+  for (const [name, expected] of [
+    ["Нежное равновесие", ["Розовый кварц", "Горный хрусталь", "Жемчуг"]],
+    ["На одной волне", ["Розовый кварц", "Матовый амазонит"]],
+    [
+      "Лесная история",
+      ["Горный хрусталь", "Авантюрин", "Розовый кварц · крошка"],
+    ],
+    ["После заката", ["Розовый кварц", "Лава", "Аметист"]],
+  ]) {
+    await page
+      .getByRole("button", { name: `Камни и смысл: ${name}`, exact: true })
+      .click();
+    const dialog = page.getByRole("dialog");
+    await dialog
+      .getByRole("button", { name: "Камни и смысл", exact: true })
+      .click();
+    const card = dialog.locator(".stone-card");
+    await expect(card).toBeVisible();
+    await expect(card.locator(".stone-row")).toHaveCount(expected.length);
+    for (const mineral of expected)
+      await expect(
+        card.getByRole("heading", { name: mineral, exact: true }),
+      ).toBeVisible();
+    await expect(
+      card.getByText("Свой личный смысл выбираете вы.", { exact: false }),
+    ).toBeVisible();
+    expect(await card.innerText()).not.toMatch(
+      /лечит|исцеляет|энерги|усиливает|наполняет/iu,
+    );
+    await page.keyboard.press("Escape");
+  }
 });
