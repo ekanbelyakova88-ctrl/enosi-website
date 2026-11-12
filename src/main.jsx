@@ -33,7 +33,6 @@ import {
 } from "./data/products";
 import { stones, productStones } from "./data/stones";
 import logo from "./assets/logo-enosi-transparent.png";
-import editorialHero from "./assets/editorial-hero.webp";
 import "./styles.css";
 
 const questions = [
@@ -190,7 +189,12 @@ function App() {
   const dialog = useRef(null);
   const trigger = useRef(null);
   const touchStart = useRef(null);
-  const showingStones = selected && photoIndex === selected.galleries.length;
+  const [zoom, setZoom] = useState(false);
+  const zoomRef = useRef(false);
+  zoomRef.current = zoom;
+  const [photoError, setPhotoError] = useState(false);
+  const requestedPhoto = useRef(0);
+  const requestVersion = useRef(0);
   const visibleProducts = products.filter(
     (p) =>
       (mood === "all" || p.mood === mood) &&
@@ -230,19 +234,12 @@ function App() {
     document.body.style.overflow = "hidden";
     dialog.current?.querySelector("button")?.focus();
     function onKey(event) {
-      if (event.key === "Escape") setSelected(null);
+      if (event.key === "Escape") { if (zoomRef.current) setZoom(false); else setSelected(null); }
       if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
         event.preventDefault();
-        setPhotoIndex((index) =>
-          Math.max(
-            0,
-            Math.min(
-              selected.galleries.length,
-              index + (event.key === "ArrowRight" ? 1 : -1),
-            ),
-          ),
-        );
+        moveSlide(event.key === "ArrowRight" ? 1 : -1);
       }
+      if (event.key === "Tab" && zoomRef.current) { event.preventDefault(); dialog.current?.querySelector(".gallery-zoom button")?.focus(); return; }
       if (event.key === "Tab") {
         const items = [...dialog.current.querySelectorAll("button, a[href]")];
         const first = items[0],
@@ -288,14 +285,31 @@ function App() {
 
   function openProduct(product, event) {
     trigger.current = event.currentTarget;
+    requestVersion.current++;
+    requestedPhoto.current = 0;
     setPhotoIndex(0);
+    setPhotoError(false);
+    setZoom(false);
     setSelected(product);
   }
-  function moveSlide(direction) {
-    setPhotoIndex((index) =>
-      Math.max(0, Math.min(selected.galleries.length, index + direction)),
-    );
+  function selectPhoto(index) {
+    const target = (index + selected.galleries.length) % selected.galleries.length;
+    requestedPhoto.current = target;
+    const version = ++requestVersion.current;
+    const image = new Image();
+    image.src = selected.galleries[target].image;
+    image.decode().then(() => {
+      if (version === requestVersion.current) { setPhotoError(false); setPhotoIndex(target); }
+    }).catch(() => { if (version === requestVersion.current) { requestedPhoto.current = photoIndex; setPhotoError(true); } });
   }
+  function moveSlide(direction) { selectPhoto(requestedPhoto.current + direction); }
+  useEffect(() => {
+    if (!selected) return;
+    const next = new Image();
+    next.src = selected.galleries[(photoIndex + 1) % selected.galleries.length].image;
+    next.decode().catch(() => {});
+    return () => { requestVersion.current++; };
+  }, [selected, photoIndex]);
   function toggleFavorite(id) {
     setFavorites((previous) =>
       previous.includes(id)
@@ -392,15 +406,15 @@ function App() {
             </p>
             <div className="hero-buttons">
               <a className="button primary" href="#collection">
-                Выбрать своё сочетание <ArrowUpRight size={19} />
+                Выбрать украшение <ArrowUpRight size={19} />
               </a>
             </div>
           </div>
           <BrandedPhoto
             className="hero-neutral"
             imageClassName="hero-image"
-            src={editorialHero}
-            alt="Художественная композиция с розовым кварцем, матовым амазонитом, жемчугом и светлой тканью"
+            src={products[0].image}
+            alt="Браслет ENOSI из розового кварца, горного хрусталя и жемчуга"
             loading="eager"
             fetchPriority="high"
           />
@@ -871,111 +885,23 @@ function App() {
               <X />
             </button>
             <div className="modal-gallery">
-              <div className="gallery-topline">
-                <span>
-                  {showingStones
-                    ? "Камни и их смысл"
-                    : selected.galleries[photoIndex].label}
-                </span>
-                <span
-                  aria-label={`Слайд ${photoIndex + 1} из ${selected.galleries.length + 1}`}
-                >
-                  {photoIndex + 1} / {selected.galleries.length + 1}
-                </span>
+              <div className="gallery-topline"><span>{selected.galleries[photoIndex].label}</span><span aria-live="polite">{photoIndex + 1} / {selected.galleries.length}</span></div>
+              <div className="gallery-stage" onTouchStart={(event) => { const t=event.touches[0]; touchStart.current={x:t.clientX,y:t.clientY}; }} onTouchEnd={(event) => { if(!touchStart.current)return; const t=event.changedTouches[0], dx=touchStart.current.x-t.clientX, dy=touchStart.current.y-t.clientY; touchStart.current=null; if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.4)moveSlide(dx>0?1:-1); }}>
+                <button className="modal-image gallery-photo-button" onClick={() => moveSlide(1)} aria-label="Показать следующую фотографию">
+                  <BrandedPhoto src={selected.galleries[photoIndex].image} alt={`${selected.name} — ${selected.galleries[photoIndex].label.toLowerCase()}`} />
+                </button>
               </div>
-              <div
-                className={`gallery-stage ${showingStones ? "showing-stones" : ""}`}
-                onTouchStart={(event) => {
-                  const t = event.touches[0];
-                  touchStart.current = { x: t.clientX, y: t.clientY };
-                }}
-                onTouchEnd={(event) => {
-                  if (!touchStart.current) return;
-                  const t = event.changedTouches[0],
-                    dx = touchStart.current.x - t.clientX,
-                    dy = touchStart.current.y - t.clientY;
-                  touchStart.current = null;
-                  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4)
-                    moveSlide(dx > 0 ? 1 : -1);
-                }}
-              >
-                {showingStones ? (
-                  <StoneCard product={selected} />
-                ) : (
-                  <div className="modal-image">
-                    <BrandedPhoto
-                      src={selected.galleries[photoIndex].image}
-                      alt={`${selected.name} — ${selected.galleries[photoIndex].label.toLowerCase()}`}
-                    />
-                  </div>
-                )}
-              </div>
+              {photoError && <p role="status">Не удалось загрузить фотографию. Попробуйте ещё раз.</p>}
               <div className="gallery-navigation">
-                <button
-                  aria-label="Предыдущий слайд"
-                  onClick={() => moveSlide(-1)}
-                  disabled={photoIndex === 0}
-                >
-                  <ArrowLeft size={18} />
-                  <span>Назад</span>
-                </button>
-                <span
-                  className="gallery-progress"
-                  role="status"
-                  aria-live="polite"
-                >
-                  {showingStones
-                    ? "Камни и их смысл"
-                    : `Фото ${photoIndex + 1} из ${selected.galleries.length}`}
-                </span>
-                <button
-                  aria-label="Следующий слайд"
-                  onClick={() => moveSlide(1)}
-                  disabled={showingStones}
-                >
-                  <span>
-                    {photoIndex === selected.galleries.length - 1
-                      ? "О камнях"
-                      : "Далее"}
-                  </span>
-                  <ArrowRight size={18} />
-                </button>
+                <button aria-label="Предыдущая фотография" onClick={() => moveSlide(-1)}><ArrowLeft size={18} /> Назад</button>
+                <button onClick={() => setZoom(true)}>Увеличить</button>
+                <button aria-label="Следующая фотография" onClick={() => moveSlide(1)}>Далее <ArrowRight size={18} /></button>
               </div>
-              <div
-                className="gallery-thumbnails"
-                role="group"
-                aria-label="Слайды украшения"
-              >
-                {selected.galleries.map((photo, index) => (
-                  <button
-                    key={photo.label}
-                    data-photo-slide={index}
-                    data-slide-index={index}
-                    className={photoIndex === index ? "active" : ""}
-                    aria-pressed={photoIndex === index}
-                    onClick={() => setPhotoIndex(index)}
-                  >
-                    <BrandedPhoto src={photo.image} alt="" />
-                    <span>{photo.label}</span>
-                  </button>
-                ))}
-                <button
-                  data-stone-slide="true"
-                  data-slide-index={selected.galleries.length}
-                  className={`stone-slide-thumb ${showingStones ? "active" : ""}`}
-                  aria-label="Последний слайд: камни и смысл"
-                  aria-pressed={Boolean(showingStones)}
-                  onClick={() => setPhotoIndex(selected.galleries.length)}
-                >
-                  <span className="stone-thumb-art" aria-hidden="true">
-                    <img src={logo} alt="" />
-                    <i />
-                    <i />
-                    <i />
-                  </span>
-                  <span>О камнях</span>
-                </button>
+              <div className="gallery-thumbnails" role="group" aria-label="Фотографии украшения">
+                {selected.galleries.map((photo,index) => <button key={photo.label} data-photo-slide={index} data-slide-index={index} className={photoIndex===index?"active":""} aria-pressed={photoIndex===index} onClick={() => selectPhoto(index)}><BrandedPhoto src={photo.image} alt="" /><span>{photo.label}</span></button>)}
               </div>
+              {zoom && <div className="gallery-zoom" role="dialog" aria-modal="true" aria-label="Увеличенная фотография"><button onClick={() => setZoom(false)} autoFocus aria-label="Закрыть увеличение">Закрыть ×</button><BrandedPhoto src={selected.galleries[photoIndex].image} alt={`${selected.name} — увеличенная фотография`} /></div>}
+
             </div>
             <div className="modal-copy">
               <span className="eyebrow">АВТОРСКОЕ СОЧЕТАНИЕ ENOSI</span>
@@ -983,6 +909,7 @@ function App() {
               <p className="modal-palette">{selected.materials}</p>
               <p>1 990 ₽ · Изготовление на заказ. Размер — по вашим меркам.</p>
               <p>{selected.description}</p>
+              <StoneCard product={selected} />
               <p className="product-detail">{selected.detail}</p>
               <div className="modal-information">
                 <span>

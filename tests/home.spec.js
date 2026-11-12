@@ -58,7 +58,7 @@ test("gallery contains only generated product angles and wrist view", async ({
   });
   await trigger.click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByRole("heading")).toHaveText("Нежное равновесие");
+  await expect(dialog.getByRole("heading", { level: 2 })).toHaveText("Нежное равновесие");
   await expect(dialog.locator(".modal-palette")).toHaveText(
     "Розовый кварц · горный хрусталь · жемчуг",
   );
@@ -76,16 +76,13 @@ test("gallery contains only generated product angles and wrist view", async ({
     "src",
     /\/21[.-]/,
   );
-  await dialog.getByRole("button", { name: "Следующий слайд" }).click();
-  await expect(dialog.locator(".stone-card")).toBeVisible();
-  await expect(
-    dialog.getByRole("button", { name: "Следующий слайд" }),
-  ).toBeDisabled();
-  await dialog.getByRole("button", { name: "Предыдущий слайд" }).click();
-  await expect(dialog.locator(".modal-image .branded-image")).toHaveAttribute(
-    "src",
-    /\/21[.-]/,
-  );
+  await dialog.getByRole("button", { name: "Следующая фотография" }).click();
+  await expect(dialog.locator(".gallery-topline")).toContainText("1 / 5");
+  await dialog.getByRole("button", { name: "Предыдущая фотография" }).click();
+  await expect(dialog.locator(".gallery-topline")).toContainText("5 / 5");
+  await dialog.getByRole("button", { name: "Увеличить" }).click();
+  await expect(page.getByRole("dialog", { name: "Увеличенная фотография" })).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
@@ -214,7 +211,7 @@ test("editorial hero explains the brand and homepage photographs do not repeat",
   );
   await expect(page.locator(".hero-neutral .branded-image")).toHaveAttribute(
     "src",
-    /editorial-hero/,
+    /\/17[.-]/,
   );
   await expect(
     page.locator(".hero-pagination, .gallery-modes, .product-stones"),
@@ -256,19 +253,7 @@ test("page and product dialog meet WCAG AA automated accessibility checks", asyn
       })),
     })),
   ).toEqual([]);
-  await page.getByRole("dialog").locator("[data-stone-slide]").click();
-  const card = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
-    .analyze();
-  expect(
-    card.violations.map((v) => ({
-      id: v.id,
-      nodes: v.nodes.map((n) => ({
-        target: n.target,
-        summary: n.failureSummary,
-      })),
-    })),
-  ).toEqual([]);
+
 });
 
 test("transparent logo and centered heading have no decorative stars", async ({
@@ -332,14 +317,10 @@ test("all 21 uploaded angles have generated branded counterparts in the gallerie
       ".gallery-thumbnails button[data-photo-slide]",
     );
     await expect(thumbs).toHaveCount(count);
-    await expect(dialog.locator(".gallery-thumbnails button")).toHaveCount(
-      count + 1,
-    );
-    await expect(
-      dialog.locator(".gallery-thumbnails button").last(),
-    ).toHaveAttribute("data-stone-slide", "true");
+    await expect(dialog.locator(".gallery-thumbnails button")).toHaveCount(count);
     for (let i = 0; i < count; i++) {
       await thumbs.nth(i).click();
+      await expect(thumbs.nth(i)).toHaveAttribute("aria-pressed", "true");
       const image = dialog.locator(".modal-image .branded-image");
       await expect
         .poll(() =>
@@ -376,12 +357,6 @@ test("each bracelet has a material card with editorial symbolism", async ({
   ]) {
     await page.getByRole("button", { name: `Подробнее: ${name}` }).click();
     const dialog = page.getByRole("dialog");
-    const photoCount = await dialog.locator("[data-photo-slide]").count();
-    for (let i = 0; i < photoCount; i++)
-      await dialog.getByRole("button", { name: "Следующий слайд" }).click();
-    await expect(
-      dialog.getByRole("button", { name: "Следующий слайд" }),
-    ).toBeDisabled();
     const card = dialog.locator(".stone-card");
     await expect(card).toBeVisible();
     await expect(card.locator(".stone-row")).toHaveCount(expected.length);
@@ -435,9 +410,7 @@ test("gallery responds to keyboard arrows or a horizontal touch gesture", async 
     "aria-pressed",
     "true",
   );
-  await expect(
-    dialog.getByRole("button", { name: "Предыдущий слайд" }),
-  ).toBeDisabled();
+
 });
 
 test("photo logos use varied clear corners and remain inside the photographs", async ({
