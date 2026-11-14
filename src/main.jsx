@@ -1,3 +1,4 @@
+import BraceletBuilder from "./components/BraceletBuilder";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -33,6 +34,7 @@ import {
 } from "./data/products";
 import { stones, productStones } from "./data/stones";
 import logo from "./assets/logo-enosi-transparent.png";
+import heroCollection from "./assets/hero-collection.webp";
 import "./styles.css";
 
 const questions = [
@@ -95,7 +97,7 @@ function BrandedPhoto({
   loading = "lazy",
   fetchPriority,
 }) {
-  const branding = photoBranding[src] || { corner: "top-left" };
+  const branding = src === heroCollection ? { corner: "top-right" } : photoBranding[src] || { corner: "top-left" };
   return (
     <span className={`branded-photo ${className}`}>
       <img
@@ -123,7 +125,7 @@ function StoneCard({ product }) {
   return (
     <article
       className="stone-card"
-      aria-label={`Камни браслета «${product.name}»`}
+      aria-label={`Камни украшения «${product.name}»`}
     >
       <header className="stone-card-heading">
         <h3>
@@ -195,6 +197,9 @@ function App() {
   const [photoError, setPhotoError] = useState(false);
   const requestedPhoto = useRef(0);
   const requestVersion = useRef(0);
+  const displayedPhoto = useRef(0);
+  displayedPhoto.current = photoIndex;
+  const zoomButton = useRef(null);
   const visibleProducts = products.filter(
     (p) =>
       (mood === "all" || p.mood === mood) &&
@@ -234,7 +239,7 @@ function App() {
     document.body.style.overflow = "hidden";
     dialog.current?.querySelector("button")?.focus();
     function onKey(event) {
-      if (event.key === "Escape") { if (zoomRef.current) setZoom(false); else setSelected(null); }
+      if (event.key === "Escape") { if (zoomRef.current) { setZoom(false); requestAnimationFrame(() => zoomButton.current?.focus()); } else setSelected(null); }
       if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
         event.preventDefault();
         moveSlide(event.key === "ArrowRight" ? 1 : -1);
@@ -263,7 +268,6 @@ function App() {
 
   useEffect(() => {
     if (!selected) return;
-    dialog.current?.scrollTo({ top: 0, behavior: "instant" });
     const strip = dialog.current?.querySelector(".gallery-thumbnails");
     const active = strip?.querySelector(`[data-slide-index="${photoIndex}"]`);
     if (strip && active)
@@ -293,6 +297,7 @@ function App() {
     setSelected(product);
   }
   function selectPhoto(index) {
+    if (!selected?.galleries.length) return;
     const target = (index + selected.galleries.length) % selected.galleries.length;
     requestedPhoto.current = target;
     const version = ++requestVersion.current;
@@ -300,16 +305,16 @@ function App() {
     image.src = selected.galleries[target].image;
     image.decode().then(() => {
       if (version === requestVersion.current) { setPhotoError(false); setPhotoIndex(target); }
-    }).catch(() => { if (version === requestVersion.current) { requestedPhoto.current = photoIndex; setPhotoError(true); } });
+    }).catch(() => { if (version === requestVersion.current) { requestedPhoto.current = displayedPhoto.current; setPhotoError(true); } });
   }
   function moveSlide(direction) { selectPhoto(requestedPhoto.current + direction); }
   useEffect(() => {
-    if (!selected) return;
+    if (!selected?.galleries.length) return;
     const next = new Image();
     next.src = selected.galleries[(photoIndex + 1) % selected.galleries.length].image;
     next.decode().catch(() => {});
-    return () => { requestVersion.current++; };
   }, [selected, photoIndex]);
+  useEffect(() => () => { requestVersion.current++; }, [selected]);
   function toggleFavorite(id) {
     setFavorites((previous) =>
       previous.includes(id)
@@ -333,9 +338,7 @@ function App() {
       </a>
       <div className="announcement" id="top">
         <span>Небольшие партии. Большая любовь к деталям.</span>
-        <TelegramLink>
-          Знакомиться с автором <ArrowUpRight size={12} />
-        </TelegramLink>
+        <a href="#contacts">Знакомиться с автором <ArrowUpRight size={12} /></a>
       </div>
       <header className="header">
         <Brand />
@@ -347,6 +350,7 @@ function App() {
           <a href="#collection" onClick={() => setMenuOpen(false)}>
             Выбрать украшение
           </a>
+          <a href="#constructor" onClick={() => setMenuOpen(false)}>Создать браслет</a>
           <a href="#story" onClick={() => setMenuOpen(false)}>
             Мир ENOSI
           </a>
@@ -369,9 +373,7 @@ function App() {
               <span className="saved-count">{favorites.length}</span>
             )}
           </button>
-          <TelegramLink className="header-contact">
-            Написать автору <ArrowUpRight size={15} />
-          </TelegramLink>
+          <a className="header-contact" href="#contacts">Связаться <ArrowUpRight size={15} /></a>
           <button
             className="menu-toggle icon-button"
             aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"}
@@ -413,11 +415,12 @@ function App() {
           <BrandedPhoto
             className="hero-neutral"
             imageClassName="hero-image"
-            src={products[0].image}
-            alt="Браслет ENOSI из розового кварца, горного хрусталя и жемчуга"
+            src={heroCollection}
+            alt="Художественная композиция из браслетов с разноцветными камнями"
             loading="eager"
             fetchPriority="high"
           />
+          <p className="hero-image-note">Художественная композиция · варианты украшений</p>
         </section>
 
         <div className="values-strip">
@@ -440,7 +443,7 @@ function App() {
           <div className="section-heading reveal">
             <div>
               <span className="eyebrow">
-                ЧЕТЫРЕ СОЧЕТАНИЯ. БЕСКОНЕЧНО МНОГО ВАС.
+                СОЧЕТАНИЯ, КОТОРЫЕ ХОЧЕТСЯ НОСИТЬ.
               </span>
               <h2 id="collection-title">
                 Сегодня я выбираю <em>себя.</em>
@@ -499,11 +502,7 @@ function App() {
                     onClick={(event) => openProduct(product, event)}
                     aria-label={`Подробнее: ${product.name}`}
                   >
-                    <BrandedPhoto
-                      src={product.cover}
-                      alt={`Браслет «${product.name}»: ${product.palette.toLowerCase()}`}
-                      loading="lazy"
-                    />
+                    {product.cover ? <BrandedPhoto src={product.cover} imageClassName={product.type ? "natural-product" : ""} alt={`${product.type || "Браслет"} «${product.name}»: ${product.palette.toLowerCase()}`} loading="lazy" /> : <span className="photo-pending">Фото украшения готовится</span>}
                     <span className="view-product">
                       Рассмотреть поближе <ArrowUpRight size={17} />
                     </span>
@@ -532,7 +531,7 @@ function App() {
                     {product.name}
                   </button>
                   <p>{product.materials}</p>
-                  <p>1 990 ₽ · Изготовление на заказ</p>
+                  <p>{(product.price || 1990).toLocaleString("ru-RU")} ₽ · Изготовление на заказ</p>
                   <button
                     className="product-more"
                     onClick={(event) => openProduct(product, event)}
@@ -565,14 +564,14 @@ function App() {
           )}
           <div className="collection-note">
             <span>
-              <span className="small-dot" /> Каждый браслет собран автором
+              <span className="small-dot" /> Каждое украшение собрано автором
               вручную
             </span>
-            <TelegramLink>
-              Помочь с выбором? Напишите Екатерине <ArrowUpRight size={15} />
-            </TelegramLink>
+            <a href="#contacts">Помочь с выбором? Связаться с Екатериной <ArrowUpRight size={15} /></a>
           </div>
         </section>
+
+        <BraceletBuilder />
 
         <section className="manifesto" id="philosophy">
           <div className="manifesto-inner reveal">
@@ -605,7 +604,7 @@ function App() {
             <BrandedPhoto
               className="story-photo"
               src={homePhotos.story}
-              alt="Браслет ENOSI с зелёным авантюрином и розовым кварцем на руке, фотография в стиле бренда"
+              alt="Браслет ENOSI с зелёным авантюрином и розовым кварцем"
               loading="lazy"
             />
             <div className="story-caption">
@@ -640,14 +639,12 @@ function App() {
               соберёт всё воедино.
             </p>
             <p>
-              Я создаю браслеты вручную, небольшими партиями. Мне важно, чтобы
+              Я создаю украшения вручную, небольшими партиями. Мне важно, чтобы
               украшение хотелось рассматривать — и с удовольствием носить каждый
               день.
             </p>
             <p>Я создаю украшения. А их личную историю вы определяете сами.</p>
-            <TelegramLink className="text-link">
-              Познакомиться с Екатериной <ArrowUpRight size={22} />
-            </TelegramLink>
+            <a className="text-link" href="#contacts">Познакомиться с Екатериной <ArrowUpRight size={22} /></a>
             <span className="author-signature">
               С удовольствием создавать.
               <br />
@@ -730,7 +727,7 @@ function App() {
             >
               <BrandedPhoto
                 src={homePhotos.light}
-                alt="Светлый браслет ENOSI с розовыми и жемчужными бусинами на руке"
+                alt="Светлый браслет ENOSI с розовыми и жемчужными бусинами"
                 loading="lazy"
               />
               <span>
@@ -754,7 +751,7 @@ function App() {
             >
               <BrandedPhoto
                 src={homePhotos.contrast}
-                alt="Контрастный фиолетово-чёрный браслет ENOSI на запястье"
+                alt="Контрастный фиолетово-чёрный браслет ENOSI"
                 loading="lazy"
               />
               <span>
@@ -821,6 +818,7 @@ function App() {
             <TelegramLink className="button contact-button">
               <Send size={18} /> Написать Екатерине <ArrowUpRight size={20} />
             </TelegramLink>
+            <a className="button contact-button" href="https://max.ru/u/f9LHodD0cOL0UMph0aJXniNSXxQtPOUQcCmjElEUAEtc-cQi4j2GZmhCvzw" target="_blank" rel="noopener noreferrer">Написать в MAX</a>
             <TelegramLink className="contact-handle">
               @BeliakovaKaterina
             </TelegramLink>
@@ -843,9 +841,8 @@ function App() {
           <div className="footer-links">
             <a href="#collection">Коллекция</a>
             <a href="#story">О бренде</a>
-            <TelegramLink>
-              Telegram <ArrowUpRight size={13} />
-            </TelegramLink>
+            <TelegramLink>Telegram <ArrowUpRight size={13} /></TelegramLink>
+            <a href="https://max.ru/u/f9LHodD0cOL0UMph0aJXniNSXxQtPOUQcCmjElEUAEtc-cQi4j2GZmhCvzw" target="_blank" rel="noopener noreferrer">MAX <ArrowUpRight size={13} /></a>
           </div>
           <a className="back-top" href="#top">
             Наверх <ArrowUpRight size={17} />
@@ -857,9 +854,9 @@ function App() {
           <span>Ручная работа · небольшие партии</span>
         </div>
         <p className="photo-note">
-          Все фотографии подготовлены в единой стилистике ENOSI на основе
-          снимков украшений автора. Состав, размер, стоимость и наличие
-          уточняйте лично у Екатерины.
+          Изображения украшений созданы на основе фотографий автора и могут
+          отличаться от изделий в деталях. Первый экран — художественная
+          композиция. Размер и детали можно обсудить с Екатериной.
         </p>
       </footer>
 
@@ -885,30 +882,32 @@ function App() {
               <X />
             </button>
             <div className="modal-gallery">
+              {selected.galleries.length ? <>
               <div className="gallery-topline"><span>{selected.galleries[photoIndex].label}</span><span aria-live="polite">{photoIndex + 1} / {selected.galleries.length}</span></div>
               <div className="gallery-stage" onTouchStart={(event) => { const t=event.touches[0]; touchStart.current={x:t.clientX,y:t.clientY}; }} onTouchEnd={(event) => { if(!touchStart.current)return; const t=event.changedTouches[0], dx=touchStart.current.x-t.clientX, dy=touchStart.current.y-t.clientY; touchStart.current=null; if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.4)moveSlide(dx>0?1:-1); }}>
                 <button className="modal-image gallery-photo-button" onClick={() => moveSlide(1)} aria-label="Показать следующую фотографию">
-                  <BrandedPhoto src={selected.galleries[photoIndex].image} alt={`${selected.name} — ${selected.galleries[photoIndex].label.toLowerCase()}`} />
+                  <BrandedPhoto src={selected.galleries[photoIndex].image} imageClassName={selected.type ? "natural-product" : ""} alt={`${selected.name} — ${selected.galleries[photoIndex].label.toLowerCase()}`} />
                 </button>
+                <button className="gallery-overlay-arrow previous" aria-label="Предыдущая фотография" onClick={() => moveSlide(-1)}><ArrowLeft size={20} /></button>
+                <button className="gallery-overlay-arrow next" aria-label="Следующая фотография" onClick={() => moveSlide(1)}><ArrowRight size={20} /></button>
               </div>
               {photoError && <p role="status">Не удалось загрузить фотографию. Попробуйте ещё раз.</p>}
               <div className="gallery-navigation">
-                <button aria-label="Предыдущая фотография" onClick={() => moveSlide(-1)}><ArrowLeft size={18} /> Назад</button>
-                <button onClick={() => setZoom(true)}>Увеличить</button>
-                <button aria-label="Следующая фотография" onClick={() => moveSlide(1)}>Далее <ArrowRight size={18} /></button>
+                <button ref={zoomButton} onClick={() => setZoom(true)}>Увеличить фотографию</button>
               </div>
               <div className="gallery-thumbnails" role="group" aria-label="Фотографии украшения">
                 {selected.galleries.map((photo,index) => <button key={photo.label} data-photo-slide={index} data-slide-index={index} className={photoIndex===index?"active":""} aria-pressed={photoIndex===index} onClick={() => selectPhoto(index)}><BrandedPhoto src={photo.image} alt="" /><span>{photo.label}</span></button>)}
               </div>
-              {zoom && <div className="gallery-zoom" role="dialog" aria-modal="true" aria-label="Увеличенная фотография"><button onClick={() => setZoom(false)} autoFocus aria-label="Закрыть увеличение">Закрыть ×</button><BrandedPhoto src={selected.galleries[photoIndex].image} alt={`${selected.name} — увеличенная фотография`} /></div>}
-
+              {zoom && <div className="gallery-zoom" role="dialog" aria-modal="true" aria-label="Увеличенная фотография"><button onClick={() => { setZoom(false); requestAnimationFrame(() => zoomButton.current?.focus()); }} autoFocus aria-label="Закрыть увеличение">Закрыть ×</button><BrandedPhoto src={selected.galleries[photoIndex].image} alt={`${selected.name} — увеличенная фотография`} /></div>}
+              </> : <div className="photo-pending modal-photo-pending">Фото украшения готовится</div>}
             </div>
             <div className="modal-copy">
               <span className="eyebrow">АВТОРСКОЕ СОЧЕТАНИЕ ENOSI</span>
               <h2 id="dialog-title">{selected.name}</h2>
               <p className="modal-palette">{selected.materials}</p>
-              <p>1 990 ₽ · Изготовление на заказ. Размер — по вашим меркам.</p>
+              <p>{(selected.price || 1990).toLocaleString("ru-RU")} ₽ · Изготовление на заказ. Размер — по вашим меркам.</p>
               <p>{selected.description}</p>
+              <p className="product-photo-note">Изображения стилизованы по фотографиям автора; детали изделия можно уточнить у Екатерины.</p>
               <StoneCard product={selected} />
               <p className="product-detail">{selected.detail}</p>
               <div className="modal-information">
@@ -925,6 +924,7 @@ function App() {
               >
                 Уточнить детали у автора <ArrowUpRight size={18} />
               </TelegramLink>
+              <a className="button primary product-contact" href="https://max.ru/u/f9LHodD0cOL0UMph0aJXniNSXxQtPOUQcCmjElEUAEtc-cQi4j2GZmhCvzw" target="_blank" rel="noopener noreferrer">Написать в MAX</a>
               <button
                 className={`save-product ${favorites.includes(selected.id) ? "is-favorite" : ""}`}
                 onClick={() => toggleFavorite(selected.id)}

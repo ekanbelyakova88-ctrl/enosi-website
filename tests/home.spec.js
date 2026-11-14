@@ -14,7 +14,7 @@ test("real collection, supplied logo and photographs load without errors", async
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Красота",
   );
-  await expect(page.locator(".product-card")).toHaveCount(4);
+  await expect(page.locator(".product-card")).toHaveCount(7);
   await expect(page.getByAltText("Логотип ENOSI").first()).toHaveAttribute(
     "src",
     /logo-enosi/,
@@ -34,9 +34,9 @@ test("mood filters show the matching real bracelets", async ({ page }) => {
   await page.goto("/");
   for (const [name, count] of [
     ["Нежные", 2],
-    ["Природные", 1],
+    ["Природные", 4],
     ["Выразительные", 1],
-    ["Все сочетания", 4],
+    ["Все сочетания", 7],
   ]) {
     await page.getByRole("button", { name, exact: true }).click();
     await expect(page.locator(".product-card")).toHaveCount(count);
@@ -109,7 +109,7 @@ test("favorites persist and empty selection can be reset", async ({ page }) => {
     .locator(".empty-state")
     .getByRole("button", { name: "Все сочетания" })
     .click();
-  await expect(page.locator(".product-card")).toHaveCount(4);
+  await expect(page.locator(".product-card")).toHaveCount(7);
 });
 
 test("Telegram connects to the author and includes the selected bracelet", async ({
@@ -211,7 +211,7 @@ test("editorial hero explains the brand and homepage photographs do not repeat",
   );
   await expect(page.locator(".hero-neutral .branded-image")).toHaveAttribute(
     "src",
-    /\/17[.-]/,
+    /hero-collection/,
   );
   await expect(
     page.locator(".hero-pagination, .gallery-modes, .product-stones"),
@@ -219,7 +219,7 @@ test("editorial hero explains the brand and homepage photographs do not repeat",
   const sources = await page
     .locator("main .branded-image")
     .evaluateAll((images) => images.map((img) => img.getAttribute("src")));
-  expect(sources.length).toBe(8);
+  expect(sources.length).toBe(11);
   expect(new Set(sources).size).toBe(sources.length);
 });
 
@@ -433,4 +433,60 @@ test("photo logos use varied clear corners and remain inside the photographs", a
     await expect(mark).toHaveCSS("opacity", "1");
   }
   expect(corners.size).toBeGreaterThanOrEqual(3);
+});
+
+test("confirmed tree collection prices, materials and order links", async ({ page }) => {
+  await page.goto("/");
+  for (const [name, price] of [["Браслет «Дерево жизни»", "1 990"], ["Колье «Дерево жизни»", "3 490"], ["Комплект «Дерево жизни»", "4 490"]]) {
+    const card = page.locator(".product-card").filter({ hasText: name });
+    await expect(card).toContainText(price);
+    await expect(card).toContainText("Розовый кварц");
+    await card.getByRole("button", {name, exact: true}).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toContainText(price);
+    await expect(dialog).toContainText("Размер — по вашим меркам");
+    await expect(dialog.getByRole("link", {name: /Уточнить детали/})).toHaveAttribute("href", /t\.me\/BeliakovaKaterina/);
+    if (name.startsWith("Комплект")) await expect(dialog).toContainText("колье с подвеской-деревом и сочетающийся браслет");
+    await page.keyboard.press("Escape");
+  }
+});
+
+test("gallery retains the loaded image while a photo is slow and honours rapid navigation", async ({ page }) => {
+  let release;
+  const hold = new Promise(resolve => { release = resolve; });
+  await page.route("**/gallery/02.webp**", async route => { if (route.request().resourceType() === "image") await hold; await route.continue(); });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Подробнее: На одной волне" }).click();
+  const dialog = page.getByRole("dialog"), image = dialog.locator(".modal-image .branded-image");
+  await expect(image).toHaveAttribute("src", /01\.webp/);
+  const before = await dialog.locator(".gallery-stage").boundingBox();
+  await dialog.getByRole("button", {name: "Следующая фотография"}).click();
+  await page.waitForTimeout(300);
+  await expect(image).toHaveAttribute("src", /01\.webp/);
+  expect(await image.evaluate(i => i.complete && i.naturalWidth > 0)).toBe(true);
+  const during = await dialog.locator(".gallery-stage").boundingBox();
+  expect(Math.abs(during.height - before.height)).toBeLessThan(1);
+  await dialog.getByRole("button", {name: "Следующая фотография"}).click();
+  await dialog.getByRole("button", {name: "Следующая фотография"}).click();
+  await expect(image).toHaveAttribute("src", /04\.webp/);
+  release();
+  await page.waitForTimeout(300);
+  await expect(image).toHaveAttribute("src", /04\.webp/);
+  await dialog.getByRole("button", {name: "Показать следующую фотографию"}).click();
+  await expect(image).toHaveAttribute("src", /01\.webp/);
+});
+
+test("new collection uses the supplied photographs with overlay controls", async ({page}) => {
+  await page.goto("/");
+  for (const [name, count] of [["Браслет «Дерево жизни»",3],["Колье «Дерево жизни»",3],["Комплект «Дерево жизни»",4]]) {
+    await page.getByRole("button", {name:`Подробнее: ${name}`, exact:true}).click();
+    const dialog=page.getByRole("dialog");
+    await expect(dialog.locator("[data-photo-slide]")).toHaveCount(count);
+    await expect(dialog.locator(".gallery-stage .branded-image")).toHaveAttribute("src", /set-styled\/\d{2}\.webp/);
+    await expect(dialog.locator(".gallery-stage").getByRole("button",{name:"Следующая фотография"})).toBeVisible();
+    await dialog.locator(".gallery-stage").getByRole("button",{name:"Следующая фотография"}).click();
+    await expect(dialog.locator(".gallery-topline")).toContainText(`2 / ${count}`);
+    await expect(dialog.locator(".gallery-stage").getByRole("button",{name:"Предыдущая фотография"})).toBeVisible();
+    await page.keyboard.press("Escape");
+  }
 });

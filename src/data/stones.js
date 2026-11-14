@@ -51,6 +51,9 @@ export const stones = {
 };
 
 export const productStones = {
+  "tree-bracelet": ["roseQuartz", "crystal", "aventurine"],
+  "tree-necklace": ["roseQuartz", "crystal", "aventurine"],
+  "tree-set": ["roseQuartz", "crystal", "aventurine"],
   "gentle-balance": ["roseQuartz", "crystal", "pearl"],
   "same-wave": ["roseQuartz", "amazonite"],
   "forest-story": ["crystal", "aventurine", "roseQuartz"],

@@ -3202,3 +3202,17 @@ svg {
 .hero-neutral .hero-image { object-fit: contain; background: #f3ede5; }
 .hero-neutral > .branded-image.hero-image { object-fit: contain; object-position: center; background: #f3ede5; }
 .gallery-topline { padding-right: 72px; }
+.photo-pending { display: flex; align-items: center; justify-content: center; text-align: center; background: #e6ebdf; color: #374f3c; width: 100%; height: 100%; min-height: 320px; font-size: 15px; }
+.modal-photo-pending { aspect-ratio: 3/4; }
+/* The brand story block uses straight corners on every screen. */
+.look-quote { border-radius: 0; }
+.hero-neutral { width: min(100%, 1320px); max-width: 1320px; height: clamp(260px, 37vw, 480px); border-radius: 0; background: #dce6d3; }
+.hero-neutral > .branded-image.hero-image { object-fit: cover; object-position: center; background: #dce6d3; }
+.hero-image-note { margin: 8px auto 0; text-align: center; color: #52654f; font-size: 10px; }
+.gallery-stage > .gallery-overlay-arrow { position: absolute; z-index: 3; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid #cad2c2; border-radius: 50%; background: rgba(255,253,247,.94); color: #2d4733; cursor: pointer; }
+.gallery-overlay-arrow.previous { left: 12px; }
+.gallery-overlay-arrow.next { right: 12px; }
+.gallery-navigation { justify-content: center; }
+.gallery-navigation > button { flex: 0 1 220px; }
+.product-image-button .natural-product, .modal-image .natural-product { object-fit: contain !important; }
+@media (max-width: 600px) { .hero-neutral { width: 100%; height: 245px; border-radius: 0; } .gallery-stage > .gallery-overlay-arrow { width: 44px; height: 44px; } }
