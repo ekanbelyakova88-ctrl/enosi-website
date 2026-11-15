@@ -396,7 +396,7 @@ function App() {
               </span>
             </p>
             <h1 id="hero-title">
-              <span className="hero-heading-line">Украшение с характером</span><em className="hero-heading-line">для вашей истории</em>
+              <span className="hero-heading-line">Украшение с характером</span>{" "}<em className="hero-heading-line">для вашей истории</em>
             </h1>
             <p>
               Каждый камень уникален. Соединяясь, оттенки и фактуры создают характер украшения, а его историю и смысл выбираете вы.
