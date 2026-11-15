@@ -12,7 +12,7 @@ test("real collection, supplied logo and photographs load without errors", async
   });
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Красота",
+    "Украшения с характером",
   );
   await expect(page.locator(".product-card")).toHaveCount(7);
   await expect(page.getByAltText("Логотип ENOSI").first()).toHaveAttribute(

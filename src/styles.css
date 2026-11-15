@@ -3228,3 +3228,5 @@ svg {
 .gift-section h2 { font:400 clamp(40px,5vw,68px)/1.05 var(--serif); color:#304b36; margin:20px 0; }
 .gift-section h2 em { color:#b36e80; }.gift-section p { max-width:450px; line-height:1.8; margin:15px 0; }.gift-section .gift-note { font-size:11px; color:#61705b; }
 @media(max-width:700px) { .gift-section { grid-template-columns:1fr; } }
+/* Let the longer headline wrap naturally on narrow screens. */
+.hero h1 em { white-space: normal; }
