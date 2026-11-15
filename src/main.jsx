@@ -35,6 +35,7 @@ import {
 import { stones, productStones } from "./data/stones";
 import logo from "./assets/logo-enosi-transparent.png";
 import heroCollection from "./assets/hero-collection.webp";
+import giftConcept from "./assets/gift-concept.webp";
 import "./styles.css";
 
 const questions = [
@@ -97,7 +98,7 @@ function BrandedPhoto({
   loading = "lazy",
   fetchPriority,
 }) {
-  const branding = src === heroCollection ? { corner: "top-right" } : photoBranding[src] || { corner: "top-left" };
+  const branding = src === giftConcept ? { corner: "bottom-right" } : src === heroCollection ? { corner: "top-right" } : photoBranding[src] || { corner: "top-left" };
   return (
     <span className={`branded-photo ${className}`}>
       <img
@@ -800,6 +801,10 @@ function App() {
           </div>
         </section>
 
+        <section className="gift-section section-space" aria-labelledby="gift-title">
+          <BrandedPhoto src={giftConcept} alt="Художественный вариант оформления подарка: белая коробочка и браслет" className="gift-image" />
+          <div><span className="eyebrow">ПОВОД ДЛЯ ТЁПЛЫХ СЛОВ</span><h2 id="gift-title">Подарок <em>с вниманием.</em></h2><p>Для мамы, подруги, коллеги или для себя — к празднику или просто так. Помогу подобрать сочетание и обсудить оформление подарка.</p><p className="gift-note">На изображении — вариант оформления. Детали упаковки уточняйте при заказе.</p><a href="#contacts" className="text-link">Обсудить подарок <ArrowUpRight size={18} /></a></div>
+        </section>
         <section className="contact" id="contacts">
           <div className="contact-inner reveal">
             <span className="eyebrow">ОДНО СООБЩЕНИЕ — НАЧАЛО ЗНАКОМСТВА</span>

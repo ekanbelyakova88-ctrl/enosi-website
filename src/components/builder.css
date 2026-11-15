@@ -2,3 +2,10 @@
 .builder-grid,.builder-work,.builder-materials { min-width: 0; }
 .position-list,.bead-line { max-width: 100%; }
 @media(max-width:700px){.builder-grid{grid-template-columns:minmax(0,1fr)}}
+.bead-preview{display:flex;align-items:center;gap:14px;background:#f8efe9;border:1px solid #e8dcd2;padding:10px;margin:12px 0}.bead-preview img{width:128px;height:128px;object-fit:contain}.bead-preview strong{font-size:15px}.bead-preview p{margin:5px 0}.bead-preview small{font-size:11px;line-height:1.4;display:block}.material-list img{object-fit:cover;border-radius:50%;}
+.bracelet-canvas{background:#f8efe9}
+.bead-preview button { display:block; margin-top:8px; font-size:11px; padding:6px 10px; }
+.bead-photo-overlay { position:fixed; inset:0; z-index:300; background:rgba(31,42,33,.94); display:flex; flex-direction:column; justify-content:center; align-items:center; padding:65px 20px 20px; color:white; }
+.bead-photo-overlay button { position:absolute; top:15px; right:18px; }
+.bead-photo-overlay img { width:min(90vw,600px); max-height:70vh; object-fit:contain; }
+.bead-photo-overlay p { color:white; }

@@ -219,7 +219,7 @@ test("editorial hero explains the brand and homepage photographs do not repeat",
   const sources = await page
     .locator("main .branded-image")
     .evaluateAll((images) => images.map((img) => img.getAttribute("src")));
-  expect(sources.length).toBe(11);
+  expect(sources.length).toBe(12);
   expect(new Set(sources).size).toBe(sources.length);
 });
 
