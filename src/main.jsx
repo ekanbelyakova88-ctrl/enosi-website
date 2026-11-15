@@ -577,14 +577,12 @@ function App() {
           <div className="manifesto-inner reveal">
             <span className="eyebrow">НАША ФИЛОСОФИЯ</span>
             <h2>
-              Не по правилам.
+              Красота, которую
               <br />
-              <em>По любви.</em>
+              <em>выбираете вы.</em>
             </h2>
             <p>
-              Красота не нуждается в объяснениях, чтобы привлекать.
-              <br className="desktop-break" /> Иногда достаточно взгляда и
-              простого: «Вот оно. Моё».
+              Мы соединяем природные камни, оттенки и формы с любовью к деталям. Украшение не навязывает смысл: вы сами решаете, что оно значит для вас — любимая вещь на каждый день, часть особенного образа или подарок близкому человеку.
             </p>
             <a href="#collection" className="text-link">
               Довериться своему вкусу <MoveRight size={24} />
@@ -813,12 +811,14 @@ function App() {
             <p>
               Помогу выбрать оттенки, расскажу о деталях
               <br className="desktop-break" /> и отвечу на вопросы. Просто
-              напишите мне.
+              напишите мне. Украшение может стать подарком маме, подруге или коллеге — к празднику или просто так, для себя и близких.
             </p>
+            <div className="contact-buttons">
             <TelegramLink className="button contact-button">
               <Send size={18} /> Написать Екатерине <ArrowUpRight size={20} />
             </TelegramLink>
             <a className="button contact-button" href="https://max.ru/u/f9LHodD0cOL0UMph0aJXniNSXxQtPOUQcCmjElEUAEtc-cQi4j2GZmhCvzw" target="_blank" rel="noopener noreferrer">Написать в MAX</a>
+            </div>
             <TelegramLink className="contact-handle">
               @BeliakovaKaterina
             </TelegramLink>

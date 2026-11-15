@@ -52,7 +52,7 @@ export const photoBranding = Object.fromEntries(
 );
 for (let n = 1; n <= 7; n++) photoBranding[setPhoto(n)] = { corner: n === 1 || n === 5 ? "bottom-left" : n === 7 ? "top-left" : "top-right" };
 export const homePhotos = {
-  story: photo(5),
+  story: photo(7),
   light: photo(20),
   contrast: photo(16),
 };
