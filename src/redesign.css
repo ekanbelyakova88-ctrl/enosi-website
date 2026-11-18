@@ -133,3 +133,104 @@ body { background: var(--enosi-paper); color: var(--enosi-ink); }
 .manifesto-inner > h2 > em { color: #f2cbd0; }
 .manifesto-inner .text-link { border-color: #d7e1d2; }
 .gift-section .gift-note { color: #4e624d; }
+
+/* ENOSI — графичный, мягкий и открытый дизайн */
+body { color:#294238; background:#fbfaf6; }
+.header { padding:14px 5%; background:#fbfaf6; border-bottom:1px solid #dce2d7; }
+.navigation { font-size:13px; gap:clamp(15px,2vw,32px); }
+.hero-copy { text-align:center; }
+.hero h1 { font-weight:400; letter-spacing:-.03em; line-height:1; }
+.hero h1 em { color:#ad6b7d; }
+.hero-copy > .hero-category { font-size:17px; color:#496052; }
+.hero-neutral,.story-art > .branded-photo.story-photo,.look-card > .branded-photo,.gift-image,.product-picture { border-radius:12px; }
+.hero-neutral > .branded-image.hero-image { object-fit:cover; }
+.button.primary { border-radius:100px; padding:16px 27px; }
+.values-strip { background:#faf9f3; padding-block:22px; }
+.section-space { padding-top:clamp(75px,8vw,120px); padding-bottom:clamp(75px,8vw,120px); }
+.section-heading h2,.story-copy h2,.builder-head h2 { font-weight:400; font-size:clamp(48px,6vw,82px); line-height:1; letter-spacing:-.025em; }
+.eyebrow,.product-kicker { font-size:12px; letter-spacing:.1em; }
+.collection { background:#fbfaf6; }
+.collection-toolbar { border-top:1px solid #d2d9ce; padding-top:15px; }
+.filter { font-size:14px; }
+.product-grid { gap:clamp(18px,2.5vw,40px); row-gap:60px; }
+.product-info { padding-top:20px; }
+.product-name { font-size:clamp(27px,2.6vw,36px); }
+.product-info p { line-height:1.6; }
+.builder button { border-radius:8px; }
+.builder-work,.builder-materials { border-radius:14px; }
+.material-list img { width:52px; height:52px; }
+.material-list small { font-size:12px; }
+.bracelet-canvas { border-radius:18px; }
+.manifesto { background:#365344; }
+.manifesto-inner h2 { font-size:clamp(55px,7vw,100px); }
+.craft-card { border-radius:0!important; }
+.looks-grid { gap:clamp(20px,3vw,45px); }
+.look-card:last-child { margin-top:0; }
+.contact { background:#365344; }
+.contact-buttons .contact-button { border-radius:100px; }
+@media(max-width:760px){ .header{padding-inline:5%} .hero-copy > .hero-category{font-size:17px} .hero h1 .hero-heading-line {white-space:normal} .section-space {padding-block:70px} .product-grid{gap:14px;row-gap:40px} .product-name{font-size:25px} .builder-materials{border-left:0} }
+/* Вариант 2 — контрастная авторская мастерская */
+.announcement { background:#283f34; }
+.hero { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(270px,.75fr); padding:55px 6% 60px; column-gap:5%; background:#f5eee9; }
+.hero-copy { grid-column:1/-1; padding-bottom:30px; }
+.hero h1 { font-size:clamp(46px,6vw,92px); margin:18px auto 0; }
+.hero-feature { grid-column:1; grid-row:2; margin:0; }
+.hero-neutral { width:100%; height:auto; aspect-ratio:1.6/1; border-radius:16px; }
+.hero-image-note { text-align:left; margin-top:10px; }
+.hero-details { grid-column:2; grid-row:2; text-align:left; align-self:center; padding:20px 0; }
+.hero-details > p { max-width:34ch; font-size:17px; line-height:1.7; }
+.hero-details > .hero-craft-note { font-size:13px; }
+.hero-buttons { justify-content:flex-start; }
+.collection { background:#fffdf9; }
+.product-picture { border-radius:12px; }
+.builder { background:#344f40; color:#fffaf3; }
+.builder-head h2,.builder-head p { color:#fffaf3; }
+.builder-head h2 em { color:#f1cbd0; }
+.builder-work,.builder-materials { background:#faf8f1; color:#2e4838; padding:24px; border:0; }
+.builder-materials { border-left:0; }
+.bracelet-canvas { background:#f1ece5; border-radius:14px; }
+.material-list button { color:#304b35; }
+.story { background:#fcfbf7; }
+.looks { background:#ebf0e8; max-width:none; padding-inline:max(5%,calc((100% - 1200px)/2)); }
+.gift-section { background:#f4e8e3; }
+@media(max-width:760px){ .hero{grid-template-columns:1fr;padding:40px 5% 30px} .hero-copy{grid-column:1;padding-bottom:20px} .hero h1{font-size:clamp(40px,9vw,65px)} .hero-feature{grid-column:1;grid-row:2} .hero-neutral{aspect-ratio:1.35/1;border-radius:12px} .hero-details{grid-column:1;grid-row:3;text-align:center;padding:22px 0 0} .hero-details > p{margin-inline:auto} .hero-buttons{justify-content:center} .builder-work,.builder-materials{padding:16px} }
+
+/* Светлая мастерская и отдельная пудровая пауза между разделами. */
+.builder {
+  background:#edf1e7;
+  color:#2e4838;
+  border-top:1px solid #dce3d4;
+  padding-bottom:clamp(75px,8vw,120px);
+}
+.builder-head h2,.builder-head p { color:#2e4838; }
+.builder-head h2 em { color:#9e586b; }
+.builder-work,.builder-materials {
+  background:#fffdf8;
+  border:1px solid #dbe2d4;
+  box-shadow:0 8px 30px #354d3a06;
+}
+.bracelet-canvas { background:#f7f3ec; }
+.builder-ideas button { border-top-color:#bdcbb6; }
+.builder-ideas button:hover { background:#fffdf8; }
+.manifesto {
+  background:#f2e4e0;
+  color:#314b3c;
+  padding:clamp(75px,8vw,115px) 24px;
+  border-block:1px solid #e4d4ce;
+}
+.manifesto-inner > .eyebrow { color:#71535c; }
+.manifesto-inner > h2,.manifesto-inner > p,.manifesto-inner .text-link { color:#314b3c; }
+.manifesto-inner > h2 > em { color:#985467; }
+.manifesto-inner .text-link { border-color:#a98b8b; }
+.manifesto-petal,.manifesto-orbit { display:none; }
+.manifesto-inner > p { max-width:59ch; }
+@media(max-width:760px) {
+  .builder-work,.builder-materials { padding:16px; }
+  .manifesto { padding:70px 22px; }
+}
+.manifesto-inner { margin-inline:auto; text-align:center; }
+.manifesto-inner > p { margin-inline:auto; text-align:center; }
+/* Единое мягкое скругление обеих фотографий в разделе образов. */
+.looks .looks-grid .look-card { border-radius:12px; overflow:hidden; }
+.looks .looks-grid .look-card > .branded-photo { border-radius:12px; overflow:hidden; }
+.looks .looks-grid .look-card > .branded-photo > .branded-image { border-radius:inherit; }
