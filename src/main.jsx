@@ -33,6 +33,7 @@ import {
   homePhotos,
 } from "./data/products";
 import { stones, productStones } from "./data/stones";
+import { byId } from "./data/materials";
 import logo from "./assets/logo-enosi-transparent.png";
 import heroCollection from "./assets/hero-collection.webp";
 import giftConcept from "./assets/gift-concept.webp";
@@ -422,7 +423,20 @@ function App() {
               <a className="button primary" href="#collection">
                 Выбрать украшение <ArrowUpRight size={19} />
               </a>
+              <a className="button builder-hero-link" href="#constructor">Создать мой браслет <ArrowUpRight size={19} /></a>
             </div>
+          </div>
+        </section>
+
+        <section className="builder-invitation" aria-labelledby="invitation-title">
+          <div className="invitation-copy">
+            <span className="eyebrow">ВАША ИСТОРИЯ В ДЕТАЛЯХ</span>
+            <h2 id="invitation-title">Создай свой <em>браслет</em></h2>
+            <p>Выберите камни, соедините любимые оттенки — я соберу украшение по вашему эскизу</p>
+            <a className="button primary" href="#constructor">Создать мой браслет <ArrowUpRight size={19} /></a>
+          </div>
+          <div className="invitation-beads" role="img" aria-label="Пример сочетания бусин">
+            {['m11', 'm03', 'm01', 'm08', 'm11', 'm03', 'm01', 'm08'].map((id, index) => <img key={index} src={byId[id].image} alt="" style={{'--bead-index': index}} />)}
           </div>
         </section>
 
@@ -437,6 +451,8 @@ function App() {
             <Heart /> Соединяем с удовольствием
           </span>
         </div>
+
+        <BraceletBuilder />
 
         <section
           className="collection section-space"
@@ -573,8 +589,6 @@ function App() {
             <a href="#contacts">Помочь с выбором? Связаться с Екатериной <ArrowUpRight size={15} /></a>
           </div>
         </section>
-
-        <BraceletBuilder />
 
         <section className="manifesto" id="philosophy">
           <div className="manifesto-inner reveal">

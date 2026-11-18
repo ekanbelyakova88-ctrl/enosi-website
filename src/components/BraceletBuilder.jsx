@@ -1,40 +1,1015 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {materials, byId} from '../data/materials';
-import './builder.css';
-const MAX='https://max.ru/u/f9LHodD0cOL0UMph0aJXniNSXxQtPOUQcCmjElEUAEtc-cQi4j2GZmhCvzw';
-const TELEGRAM='https://t.me/BeliakovaKaterina';
-const KEY='enosi-bracelet-builder-v1', LIMIT=60;
-const empty={beads:[],name:'',wrist:'',fit:'unknown',wishes:''};
-const valid=x=>({beads:Array.isArray(x?.beads)?x.beads.filter(id=>typeof id==='string'&&id.length<=40).slice(0,LIMIT):[],name:typeof x?.name==='string'?x.name.slice(0,60):'',wrist:typeof x?.wrist==='string'?x.wrist.slice(0,5):'',fit:['close','loose','unknown'].includes(x?.fit)?x.fit:'unknown',wishes:typeof x?.wishes==='string'?x.wishes.slice(0,500):''});
-const load=()=>{try{const x=JSON.parse(localStorage.getItem(KEY)||'{}');return {current:valid(x.current),saved:Array.isArray(x.saved)?x.saved.slice(0,20).map(valid):[]}}catch{return {current:valid({}),saved:[]}}};
-const cropFor = id => ({m05:[190,65,150],m06:[275,65,170],m14:[185,65,140],m16:[275,255,170],m17:[245,120,235],m18:[160,120,180],m22:[210,210,80],m29:[50,145,145]}[id] || [115,115,270]);
-const mat=id=>(byId[id] ? {...byId[id],available:byId[id].available && byId[id].active} : null)||{id,name:'Неизвестный материал',size:'уточнить',mm:8,color:'#b7b7b0',shape:'круглая',available:false};
-const ideas=[{name:'Нежные оттенки',ids:['m11','m01','m08','m11','m01','m08']},{name:'Природная свежесть',ids:['m03','m01','m11','m03','m01','m11']},{name:'Выразительный контраст',ids:['m28','m13','m11','m28','m13','m11']}];
-function positions(ids){const n=ids.length;if(!n)return [];const sizes=ids.map(id=>Math.max(10,Math.min(95,mat(id).mm*3.7)));const sum=sizes.reduce((a,b)=>a+b+4,0);const scale=Math.min(1,860/sum);let x=0;return ids.map((id,i)=>{const d=sizes[i]*scale;const angle=(-90+(x+d/2)/Math.max(sum*scale,860)*360)*Math.PI/180;x+=d+4*scale;return {x:200+150*Math.cos(angle),y:195+138*Math.sin(angle),d:Math.max(7,d)}})}
-export default function BraceletBuilder(){
- const previewButton=useRef(null); const initial=useRef(load()).current;const [sketch,setSketch]=useState(initial.current),[saved,setSaved]=useState(initial.saved),[mode,setMode]=useState(null),[selected,setSelected]=useState(-1),[chosen,setChosen]=useState('m01'),[view,setView]=useState('circle'),[query,setQuery]=useState(''),[shape,setShape]=useState('all'),[size,setSize]=useState('all'),[only,setOnly]=useState(true),[past,setPast]=useState([]),[future,setFuture]=useState([]),[confirm,setConfirm]=useState(''),[summary,setSummary]=useState(false),[notice,setNotice]=useState(''),[storage,setStorage]=useState(true),[previewOpen,setPreviewOpen]=useState(false);
- const nodes=positions(sketch.beads);const chosenMaterial=mat(chosen);const filtered=materials.filter(m=>m.active&&(!only||m.available)&&`${m.name} ${m.original}`.toLowerCase().includes(query.toLowerCase())&&(shape==='all'||m.shape===shape)&&(size==='all'||(size==='small'?m.mm<8:size==='medium'?m.mm>=8&&m.mm<=10:m.mm>10)));
- useEffect(()=>{try{localStorage.setItem(KEY,JSON.stringify({current:sketch,saved}));setStorage(true)}catch{setStorage(false)}},[sketch,saved]);
- const update=(next)=>{setPast(p=>[...p.slice(-49),sketch]);setFuture([]);setSketch(valid(next));};
- const change=fn=>{const a=[...sketch.beads];const n=fn(a);if(n)update({...sketch,beads:a});};
- const insert=(where)=>{if(!chosenMaterial.available){setNotice('Этот материал сейчас недоступен.');return}if(sketch.beads.length>=LIMIT){setNotice(`Не более ${LIMIT} элементов в эскизе.`);return}change(a=>{const at=selected<0?a.length:selected+(where==='after'?1:0);a.splice(at,0,chosen);setSelected(at);return true});};
- const replace=()=>{if(selected<0||!chosenMaterial.available)return;change(a=>{a[selected]=chosen;return true})};
- const undo=()=>{if(!past.length)return;setFuture(f=>[sketch,...f]);setSketch(past.at(-1));setPast(past.slice(0,-1));setSelected(-1)};
- const redo=()=>{if(!future.length)return;setPast(p=>[...p,sketch]);setSketch(future[0]);setFuture(future.slice(1));setSelected(-1)};
- const detail=useMemo(()=>{const counts={};sketch.beads.forEach(id=>counts[id]=(counts[id]||0)+1);return [`Эскиз ENOSI${sketch.name?`: ${sketch.name}`:''}`,`Обхват: ${sketch.wrist?`${sketch.wrist} см`:'размер не определён'}; посадка: ${{close:'ближе к руке',loose:'свободнее',unknown:'не определена'}[sketch.fit]}.`,`Материалы: ${Object.entries(counts).map(([id,n])=>`${mat(id).name}, ${mat(id).shape}, ${mat(id).size} — ${n} шт.`).join('; ')||'не выбраны'}.`,`Последовательность от начала по часовой стрелке: ${sketch.beads.map((id,i)=>`${i+1}. ${mat(id).name} (${mat(id).shape}, ${mat(id).size})`).join(' → ')||'пуста'}.`,`Пожелания: ${sketch.wishes||'нет'}.`,'Изготовление, размер и стоимость согласуются с Екатериной. Изображения и размеры в эскизе приблизительные.'].join('\n')},[sketch]);
- async function copy(){try{await navigator.clipboard.writeText(detail);setNotice('Описание скопировано.')}catch{setNotice('Выделите текст ниже и скопируйте вручную.')}setSummary(true)}
- async function renderSketch(){const c=document.createElement('canvas');c.width=900;c.height=1000;const ctx=c.getContext('2d');ctx.fillStyle='#f7f3ea';ctx.fillRect(0,0,900,1000);ctx.fillStyle='#334d38';ctx.textAlign='center';ctx.font='48px Georgia';ctx.fillText('ENOSI',450,80);ctx.font='28px Georgia';ctx.fillText(`Эскиз${sketch.name?' · '+sketch.name:''}`,450,130,800);ctx.strokeStyle='#a4a891';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(450,480,300,276,0,0,Math.PI*2);ctx.stroke();const imgs=await Promise.all(sketch.beads.map(id=>new Promise(resolve=>{const m=mat(id);if(!m.image)return resolve(null);const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>resolve(null);img.src=m.image})));nodes.forEach((n,i)=>{const d=n.d*2.3,x=(n.x-200)*2+450,y=(n.y-195)*2+480;if(imgs[i]){const [cx,cy,cs]=cropFor(sketch.beads[i]);const crop=[cx*1.2,cy*1.2,cs*1.2,cs*1.2];ctx.save();ctx.beginPath();ctx.arc(x,y,d/2,0,Math.PI*2);ctx.clip();ctx.drawImage(imgs[i],...crop,x-d/2,y-d/2,d,d);ctx.restore();}else{ctx.fillStyle='#aaa';ctx.beginPath();ctx.arc(x,y,d/2,0,Math.PI*2);ctx.fill()}});ctx.font='22px sans-serif';ctx.fillStyle='#505b4b';ctx.fillText('Начало · по часовой стрелке',450,820);ctx.fillText('Изображения в эскизе приблизительные. Детали согласуем с автором.',450,875,820);return c}
- async function download(){const c=await renderSketch();const a=document.createElement('a');a.download='ENOSI-eskiz.png';a.href=c.toDataURL('image/png');a.click()}
- async function share(){try{const c=await renderSketch();const blob=await new Promise(resolve=>c.toBlob(resolve,'image/png'));if(!blob)throw new Error('blob');const file=new File([blob],'ENOSI-eskiz.png',{type:'image/png'});if(!navigator.share||!navigator.canShare?.({files:[file]}))throw new Error('unsupported');await navigator.share({title:'Эскиз ENOSI',text:detail,files:[file]});}catch(e){if(e?.name!=='AbortError')setNotice('На этом устройстве выберите «Скачать эскиз» и приложите его к сообщению вручную.')}}
- return <section id="constructor" className="builder section-space" aria-labelledby="builder-title"><div className="builder-head"><span className="eyebrow">СОЗДАНО ВАШИМ ВКУСОМ</span><h2 id="builder-title">Создай свой <em>браслет</em></h2><p className="builder-subtitle">Ваше сочетание. Ваша история</p><p>Выберите камни и расположите их по своему вкусу. Екатерина поможет уточнить размер и соберёт ваше украшение.</p><p>Эскиз ни к чему не обязывает. Регистрация не нужна.</p></div>
- <div className="builder-start"><button type="button" aria-pressed={mode==='ideas'} onClick={()=>setMode('ideas')}>Изменить готовый браслет</button><button type="button" aria-pressed={mode==='new'} onClick={()=>{setMode('new');if(sketch.beads.length)setConfirm('new');else setSelected(-1)}}>Создать с нуля</button></div>
- {mode==='ideas'&&<div className="builder-ideas">{ideas.map(idea=><button key={idea.name} onClick={()=>{update({...sketch,beads:idea.ids});setSelected(-1)}}><span className="idea-beads">{idea.ids.map((id,i)=><img key={i} src={mat(id).image} alt="" />)}</span><strong>Идея для вашего браслета</strong><span>{idea.name} · {Array.from(new Set(idea.ids)).map(id=>mat(id).name).join(', ')}</span></button>)}</div>}
- {(mode||sketch.beads.length>0)&&<div className="builder-grid"><div className="builder-work"><div className="builder-view-buttons"><button aria-pressed={view==='circle'} onClick={()=>setView('circle')}>По кругу</button><button aria-pressed={view==='line'} onClick={()=>setView('line')}>Разложить в линию</button></div>
- {view==='circle'?<div className="bracelet-canvas"><svg viewBox="0 0 400 390" role="group" aria-label="Эскиз браслета, начало сверху, по часовой стрелке"><ellipse cx="200" cy="195" rx="150" ry="138" fill="none" stroke="#aaa999" strokeWidth="1.5"/><path d="M200 44 l-5 -9 h10 z" fill="#506c53"/><text x="200" y="24" textAnchor="middle" fontSize="11" fill="#405b43">НАЧАЛО ↻</text>{nodes.map((n,i)=><g key={i} role="button" tabIndex="0" aria-label={`Позиция ${i+1}: ${mat(sketch.beads[i]).name}`} aria-pressed={selected===i} onClick={()=>setSelected(i)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(i)}}} style={{cursor:'pointer'}}><circle cx={n.x} cy={n.y} r={Math.max(n.d/2+3,14)} fill={selected===i?'#ead0d5':'transparent'} stroke={selected===i?'#a34562':'transparent'} strokeWidth="2"/>{mat(sketch.beads[i]).image?<svg x={n.x-n.d/2} y={n.y-n.d/2} width={n.d} height={n.d} viewBox={(() => {const [x,y,size]=cropFor(sketch.beads[i]);return `${x} ${y} ${size} ${size}`})()} style={{overflow:'hidden',mixBlendMode:'multiply'}}><defs><clipPath id={`bead-cut-${i}`}><circle cx={cropFor(sketch.beads[i])[0]+cropFor(sketch.beads[i])[2]/2} cy={cropFor(sketch.beads[i])[1]+cropFor(sketch.beads[i])[2]/2} r={cropFor(sketch.beads[i])[2]/2}/></clipPath></defs><image href={mat(sketch.beads[i]).image} width='500' height='500' clipPath={`url(#bead-cut-${i})`}/></svg>:<circle cx={n.x} cy={n.y} r={n.d/2} fill="#aaa"/>}</g>)}</svg>{!sketch.beads.length&&<p>Выберите первую бусину</p>}</div>:<div className="bead-line" aria-label="Последовательность от начала по часовой стрелке">{sketch.beads.length?sketch.beads.map((id,i)=><button key={i} className={selected===i?'selected':''} onClick={()=>setSelected(i)} aria-label={`Позиция ${i+1}: ${mat(id).name}`} aria-pressed={selected===i}><img src={mat(id).image} alt=""/><small>{i+1}</small></button>):'Выберите первую бусину'}</div>}
- <p className="builder-caption">Начало сверху, далее по часовой стрелке. Масштаб приблизительный.</p><div className="position-list" aria-label="Выбор позиции">{sketch.beads.map((id,i)=><button key={i} className={selected===i?'selected':''} aria-pressed={selected===i} onClick={()=>setSelected(i)}>{i+1}. {mat(id).name}{!mat(id).available?' · уточнить наличие':''}</button>)}</div>
- <p role="status">Элементов: {sketch.beads.length} / {LIMIT} {selected>=0&&`· Выбрана позиция ${selected+1}: ${mat(sketch.beads[selected]).name}`}</p><div className="builder-actions"><button onClick={()=>insert('before')}>Добавить {selected>=0?'до':'бусину'}</button><button onClick={()=>insert('after')} disabled={selected<0}>Добавить после</button><button onClick={replace} disabled={selected<0||!chosenMaterial.available}>Заменить выбранную</button><button disabled={selected<0} onClick={()=>change(a=>{a.splice(selected,1);setSelected(-1);return true})}>Удалить</button><button disabled={selected<=0} onClick={()=>change(a=>{[a[selected-1],a[selected]]=[a[selected],a[selected-1]];setSelected(selected-1);return true})}>← Переместить</button><button disabled={selected<0||selected>=sketch.beads.length-1} onClick={()=>change(a=>{[a[selected+1],a[selected]]=[a[selected],a[selected+1]];setSelected(selected+1);return true})}>Переместить →</button><button disabled={!sketch.beads.length||sketch.beads.length*2>LIMIT} onClick={()=>update({...sketch,beads:[...sketch.beads,...sketch.beads]})}>Повторить последовательность</button><button disabled={selected<0||!chosenMaterial.available} onClick={()=>setConfirm('replace')}>Заменить все такие бусины</button><button disabled={!past.length} onClick={undo}>Отменить</button><button disabled={!future.length} onClick={redo}>Повторить</button><button disabled={!sketch.beads.length} onClick={()=>setConfirm('clear')}>Очистить</button></div>
- {confirm&&<div className="builder-confirm" role="alert"><p>{confirm==='clear'?'Очистить весь эскиз?':confirm==='new'?'Начать новый пустой эскиз? Текущий можно сохранить заранее.':`Заменить все бусины «${mat(sketch.beads[selected]).name}» на «${chosenMaterial.name}»?`}</p><button onClick={()=>{if(confirm==='clear'||confirm==='new'){update({...sketch,beads:[]});setSelected(-1)}else{const id=sketch.beads[selected];update({...sketch,beads:sketch.beads.map(v=>v===id?chosen:v)})}setConfirm('')}}>Да, продолжить</button><button onClick={()=>setConfirm('')}>Отмена</button></div>}
- <label>Название браслета (необязательно)<input maxLength="60" value={sketch.name} onChange={e=>setSketch({...sketch,name:e.target.value})}/></label><label>Обхват запястья, см<input type="number" min="8" max="30" step="0.1" value={sketch.wrist} onChange={e=>setSketch({...sketch,wrist:e.target.value.slice(0,5)})}/></label><p>Измерьте запястье лентой без припуска. Размер и посадку проверит Екатерина перед изготовлением.</p><label>Посадка<select value={sketch.fit} onChange={e=>setSketch({...sketch,fit:e.target.value})}><option value="unknown">Не знаю размер</option><option value="close">Ближе к руке</option><option value="loose">Свободнее</option></select></label><label>Пожелания к подвеске и деталям<textarea maxLength="500" value={sketch.wishes} onChange={e=>setSketch({...sketch,wishes:e.target.value})}/></label><p>Подвеску и детали можно обсудить с Екатериной. Стоимость рассчитаем по вашему эскизу.</p><p>{storage?'Эскиз сохраняется только на этом устройстве.':'Не удалось сохранить на этом устройстве — скачайте эскиз и скопируйте описание.'}</p><button onClick={()=>{setSaved([...saved.slice(-19),valid(sketch)]);setNotice('Вариант сохранён на этом устройстве.')}}>Сохранить вариант</button>{saved.length>0&&<label>Сохранённые варианты<select value="" onChange={e=>{const v=saved[Number(e.target.value)];if(v){update(v);setSelected(-1)}}}><option value="">Выберите вариант</option>{saved.map((s,i)=><option key={i} value={i}>{s.name||`Вариант ${i+1}`}</option>)}</select></label>}
- <div><button className="builder-primary" onClick={()=>setSummary(!summary)}>Обсудить мой браслет</button></div>{summary&&<div className="builder-summary"><p>Скопируйте описание и приложите эскиз в удобном мессенджере.</p><button onClick={share}>Поделиться эскизом</button><button onClick={download}>Скачать эскиз</button><button onClick={copy}>Скопировать описание</button><textarea readOnly aria-label="Описание эскиза для копирования" value={detail} onFocus={e=>e.target.select()}/><a href={TELEGRAM} target="_blank" rel="noopener noreferrer">Написать в Telegram</a><a href={MAX} target="_blank" rel="noopener noreferrer">Написать в MAX</a></div>}{notice&&<p role="status">{notice}</p>}</div>
- <aside className="builder-materials"><h3>Выберите бусину</h3><div className="bead-preview"><img src={chosenMaterial.image} alt={`Фотография: ${chosenMaterial.name}, ${chosenMaterial.size}`} /><div><strong>{chosenMaterial.name}</strong><p>{chosenMaterial.size} · {chosenMaterial.shape}</p><small>Выберите материал ниже, чтобы рассмотреть его крупнее.</small><button type="button" ref={previewButton} onClick={()=>setPreviewOpen(true)}>Увеличить фото</button></div></div><p>Фотографии предоставлены автором. В эскизе показано примерное сочетание: оттенок, рисунок и форма натуральных камней, особенно крошки, могут отличаться. Детали согласуем перед изготовлением.</p><label>Поиск<input value={query} maxLength="80" onChange={e=>setQuery(e.target.value)} placeholder="Название камня"/></label><label>Форма<select value={shape} onChange={e=>setShape(e.target.value)}><option value="all">Все формы</option>{['круглая','матовая','гранёная','крошка','цилиндр','самородок'].map(x=><option key={x}>{x}</option>)}</select></label><label>Размер<select value={size} onChange={e=>setSize(e.target.value)}><option value="all">Все размеры</option><option value="small">До 8 мм</option><option value="medium">8–10 мм</option><option value="large">Более 10 мм</option></select></label><label className="available"><input type="checkbox" checked={only} onChange={e=>setOnly(e.target.checked)}/> Только в наличии</label><div className="material-list">{filtered.map(m=><button key={m.id} className={chosen===m.id?'selected':''} aria-pressed={chosen===m.id} onClick={()=>setChosen(m.id)}><img src={m.image} alt=""/><span><strong>{m.name}</strong><small>{m.shape}{m.treatment && m.treatment!==m.shape ? ` · ${m.treatment}` : ""} · {m.size}</small><small>{m.available?'В наличии':'Нет в наличии'}</small>{m.needsReview&&<small>Сборку и посадку уточним с мастером</small>}</span></button>)}</div><p>Выбрано: <strong>{chosenMaterial.name} · {chosenMaterial.shape} · {chosenMaterial.size}</strong>. Выберите действие «Добавить» или «Заменить».</p></aside></div>}{previewOpen&&<div className="bead-photo-overlay" role="dialog" aria-modal="true" aria-label={`Фото: ${chosenMaterial.name}`} onKeyDown={e=>{if(e.key==='Escape'){setPreviewOpen(false);requestAnimationFrame(()=>previewButton.current?.focus())}if(e.key==='Tab'){e.preventDefault();e.currentTarget.querySelector('button')?.focus()}}}><button autoFocus onClick={()=>{setPreviewOpen(false);requestAnimationFrame(()=>previewButton.current?.focus())}}>Закрыть фото ×</button><img src={chosenMaterial.image} alt={`${chosenMaterial.name}, ${chosenMaterial.size}`} /><p>{chosenMaterial.name} · {chosenMaterial.size}</p></div>}</section>
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { materials } from "../data/materials";
+import { materialStory } from "../data/material-stories";
+import {
+  STORAGE_KEY,
+  LIMIT,
+  material,
+  validate,
+  load,
+  cropFor,
+  layout,
+  describe,
+} from "./builder-model";
+import "./builder.css";
+import "./workshop.css";
+import wristPhoto from "../assets/wrist-neutral.webp";
+
+const TELEGRAM = "https://t.me/BeliakovaKaterina";
+const MAX =
+  "https://max.ru/u/f9LHodD0cOL0UMph0aJXniNSXxQtPOUQcCmjElEUAEtc-cQi4j2GZmhCvzw";
+const ideas = [
+  { name: "Нежные оттенки", ids: ["m11", "m01", "m08"] },
+  { name: "Природная свежесть", ids: ["m03", "m01", "m11"] },
+  { name: "Выразительный контраст", ids: ["m28", "m13", "m11"] },
+];
+
+function Bead({ id, x, y, d, instance }) {
+  const m = material(id);
+  const [cx, cy, size] = cropFor(id);
+  const irregular = ["крошка", "самородок", "цилиндр"].includes(m.shape);
+  return (
+    <svg
+      x={x - d / 2}
+      y={y - d / 2}
+      width={d}
+      height={d}
+      viewBox={`${cx} ${cy} ${size} ${size}`}
+    >
+      <defs>
+        <clipPath id={`cut-${instance}`}>
+          {irregular ? (
+            <rect x={cx} y={cy} width={size} height={size} />
+          ) : (
+            <circle cx={cx + size / 2} cy={cy + size / 2} r={size / 2} />
+          )}
+        </clipPath>
+      </defs>
+      {m.image ? (
+        <image
+          href={m.image}
+          width="500"
+          height="500"
+          clipPath={`url(#cut-${instance})`}
+        />
+      ) : (
+        <circle
+          cx={cx + size / 2}
+          cy={cy + size / 2}
+          r={size / 2}
+          fill="#b7b7b0"
+        />
+      )}
+    </svg>
+  );
+}
+
+function Bracelet({
+  sketch,
+  selected = -1,
+  slot = -1,
+  onSelect,
+  onInsert,
+  onPointerDown,
+  interactive = false,
+  prefix = "display",
+}) {
+  const { nodes, slots } = layout(sketch.beads);
+  return (
+    <svg
+      className="workshop-bracelet"
+      viewBox="0 0 400 380"
+      aria-label="Эскиз браслета: от начала по часовой стрелке"
+      role="group"
+    >
+      <circle
+        cx="200"
+        cy="190"
+        r="138"
+        fill="none"
+        stroke="#b6bca9"
+        strokeWidth="1"
+      />
+      <text x="200" y="28" textAnchor="middle" fill="#405b43" fontSize="11">
+        НАЧАЛО · ПО ЧАСОВОЙ СТРЕЛКЕ
+      </text>
+      {nodes.map((n, i) => (
+        <g
+          key={sketch.instanceIds[i]}
+          data-instance={sketch.instanceIds[i]}
+          role={interactive ? "button" : undefined}
+          tabIndex={interactive ? 0 : undefined}
+          aria-label={
+            interactive
+              ? `Позиция ${i + 1}: ${material(sketch.beads[i]).name}`
+              : undefined
+          }
+          aria-pressed={interactive ? selected === i : undefined}
+          onClick={() => onSelect?.(i)}
+          onPointerDown={(e) => onPointerDown?.(e, i)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelect?.(i);
+            }
+          }}
+        >
+          <circle
+            cx={n.x}
+            cy={n.y}
+            r={Math.max(n.d / 2 + 4, 13)}
+            fill={selected === i ? "#eed1d8" : "transparent"}
+            stroke={selected === i ? "#995269" : "transparent"}
+          />
+          <Bead
+            id={sketch.beads[i]}
+            {...n}
+            instance={`${prefix}-${sketch.instanceIds[i]}`}
+          />
+        </g>
+      ))}
+      {interactive &&
+        slots.map((p, i) => (
+          <g
+            key={i}
+            role="button"
+            tabIndex="0"
+            aria-label={`Вставить бусину: место ${i + 1}`}
+            onClick={() => onInsert(i)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onInsert(i);
+              }
+            }}
+          >
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r="7"
+              fill={slot === i ? "#44644c" : "#fffdf5"}
+              stroke="#7f967b"
+            />
+            <text
+              x={p.x}
+              y={p.y + 4}
+              fontSize="14"
+              textAnchor="middle"
+              fill={slot === i ? "white" : "#36543d"}
+            >
+              +
+            </text>
+          </g>
+        ))}
+      {!nodes.length && (
+        <text x="200" y="190" textAnchor="middle" fontSize="13" fill="#52664d">
+          Выберите бусину и нажмите +
+        </text>
+      )}
+    </svg>
+  );
+}
+
+function WristPreview({ sketch }) {
+  const { nodes } = layout(sketch.beads);
+  return (
+    <svg
+      className="wrist-image"
+      viewBox="0 0 400 320"
+      aria-label="Визуальный эскиз выбранного браслета на нейтральном запястье"
+    >
+      <image href={wristPhoto} width="400" height="320" />
+      {nodes.map((n, i) => {
+        const x = 211 + 22 * Math.cos(n.angle),
+          y = 166 + 56 * Math.sin(n.angle);
+        return (
+          <g
+            key={sketch.instanceIds[i]}
+            data-instance={sketch.instanceIds[i]}
+            data-material={sketch.beads[i]}
+            opacity={Math.cos(n.angle) < -0.25 ? 0 : 1}
+            style={{ filter: "drop-shadow(1px 2px 1px #6d4d3a55)" }}
+          >
+            <Bead
+              id={sketch.beads[i]}
+              x={x}
+              y={y}
+              d={n.d * 0.44}
+              instance={`try-${sketch.instanceIds[i]}`}
+            />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+export default function BraceletBuilder() {
+  const initial = useRef(load()).current;
+  const [sketch, setSketch] = useState(initial.current);
+  const [saved, setSaved] = useState(initial.saved);
+  const [past, setPast] = useState([]);
+  const [future, setFuture] = useState([]);
+  const [mode, setMode] = useState(initial.current.beads.length ? "new" : null);
+  const [chosen, setChosen] = useState("m01");
+  const [selected, setSelected] = useState(-1);
+  const [query, setQuery] = useState("");
+  const [shape, setShape] = useState("all");
+  const [only, setOnly] = useState(true);
+  const [info, setInfo] = useState(null);
+  const [photo, setPhoto] = useState(false);
+  const [step, setStep] = useState("build");
+  const [notice, setNotice] = useState("");
+  const [storage, setStorage] = useState(true);
+  const [drag, setDrag] = useState(null);
+  const dragState = useRef(null);
+  const stage = useRef(null);
+  const infoTrigger = useRef(null);
+  const { slots } = layout(sketch.beads);
+  const filtered = materials.filter(
+    (m) =>
+      m.active &&
+      (!only || m.available) &&
+      m.name.toLowerCase().includes(query.toLowerCase()) &&
+      (shape === "all" || m.shape === shape),
+  );
+  const detail = useMemo(() => describe(sketch), [sketch]);
+  const chosenMaterial = material(chosen);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ current: sketch, saved }),
+      );
+      setStorage(true);
+    } catch {
+      setStorage(false);
+    }
+  }, [sketch, saved]);
+  const commit = (next) => {
+    setPast((p) => [...p.slice(-49), sketch]);
+    setFuture([]);
+    setSketch(validate(next));
+    setSelected(-1);
+  };
+  function insertAt(index, id = chosen) {
+    const m = material(id);
+    if (!m.available || !m.active) {
+      setNotice("Этот материал сейчас недоступен.");
+      return;
+    }
+    if (sketch.beads.length >= LIMIT) {
+      setNotice(`В эскизе может быть до ${LIMIT} бусин.`);
+      return;
+    }
+    const beads = [...sketch.beads],
+      instanceIds = [...sketch.instanceIds];
+    beads.splice(index, 0, id);
+    instanceIds.splice(index, 0, crypto.randomUUID());
+    commit({ ...sketch, beads, instanceIds });
+    setNotice(`Добавлена бусина: ${m.name}.`);
+  }
+  function remove() {
+    commit({
+      ...sketch,
+      beads: sketch.beads.filter((_, i) => i !== selected),
+      instanceIds: sketch.instanceIds.filter((_, i) => i !== selected),
+    });
+  }
+  function replace() {
+    if (!chosenMaterial.available || !chosenMaterial.active) return;
+    commit({
+      ...sketch,
+      beads: sketch.beads.map((id, i) => (i === selected ? chosen : id)),
+    });
+  }
+  function undo() {
+    if (!past.length) return;
+    setFuture((f) => [sketch, ...f]);
+    setSketch(past.at(-1));
+    setPast((p) => p.slice(0, -1));
+    setSelected(-1);
+  }
+  function redo() {
+    if (!future.length) return;
+    setPast((p) => [...p, sketch]);
+    setSketch(future[0]);
+    setFuture((f) => f.slice(1));
+    setSelected(-1);
+  }
+  function startNew() {
+    if (
+      sketch.beads.length &&
+      !window.confirm(
+        "Начать новый эскиз? Текущий вариант останется доступен через «Отменить».",
+      )
+    )
+      return;
+    commit(validate({}));
+    setMode("new");
+    setStep("build");
+  }
+  function startPointer(e, source, index) {
+    if (e.button !== 0 || dragState.current) return;
+    if (
+      source === "palette" &&
+      (!material(index).available || !material(index).active)
+    )
+      return;
+    const state = {
+      pointer: e.pointerId,
+      version: sketch.instanceIds.join(","),
+      x: e.clientX,
+      y: e.clientY,
+      source,
+      index,
+      active: false,
+      timer: null,
+    };
+    dragState.current = state;
+    if (e.pointerType === "touch")
+      state.timer = setTimeout(() => {
+        state.active = true;
+        setDrag({ ...state, x: e.clientX, y: e.clientY, slot: -1 });
+      }, 280);
+  }
+  useEffect(() => {
+    function move(e) {
+      const d = dragState.current;
+      if (!d || d.pointer !== e.pointerId) return;
+      const distance = Math.hypot(e.clientX - d.x, e.clientY - d.y);
+      if (!d.active && distance > 7) {
+        if (e.pointerType === "touch") {
+          clearTimeout(d.timer);
+          dragState.current = null;
+          return;
+        }
+        d.active = true;
+      }
+      if (!d.active) return;
+      e.preventDefault();
+      const rect = stage.current?.querySelector("svg")?.getBoundingClientRect();
+      let slot = -1;
+      if (
+        rect &&
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom
+      ) {
+        const x = ((e.clientX - rect.left) / rect.width) * 400,
+          y = ((e.clientY - rect.top) / rect.height) * 380;
+        let distance = Infinity;
+        slots.forEach((p, i) => {
+          const value = Math.hypot(x - p.x, y - p.y);
+          if (value < distance) {
+            distance = value;
+            slot = i;
+          }
+        });
+        if (
+          sketch.beads.length
+            ? distance > 50
+            : Math.hypot(x - 200, y - 190) > 170
+        )
+          slot = -1;
+      }
+      d.slot = slot;
+      setDrag({ ...d, x: e.clientX, y: e.clientY, slot });
+    }
+    function cancelDrag() {
+      clearTimeout(dragState.current?.timer);
+      dragState.current = null;
+      setDrag(null);
+    }
+    function touchMove(e) {
+      if (dragState.current?.active) e.preventDefault();
+    }
+    function escape(e) {
+      if (e.key === "Escape") cancelDrag();
+    }
+    function end(e) {
+      const d = dragState.current;
+      if (!d || d.pointer !== e.pointerId) return;
+      clearTimeout(d.timer);
+      dragState.current = null;
+      setDrag(null);
+      if (d.version !== sketch.instanceIds.join(",")) return;
+      if (
+        e.type === "pointercancel" ||
+        !d.active ||
+        d.slot < 0 ||
+        d.slot === undefined
+      )
+        return;
+      if (d.source === "palette") insertAt(d.slot, d.index);
+      else {
+        const beads = [...sketch.beads],
+          instanceIds = [...sketch.instanceIds];
+        const [id] = beads.splice(d.index, 1),
+          [instance] = instanceIds.splice(d.index, 1);
+        const target = d.slot > d.index ? d.slot - 1 : d.slot;
+        beads.splice(target, 0, id);
+        instanceIds.splice(target, 0, instance);
+        commit({ ...sketch, beads, instanceIds });
+      }
+    }
+    window.addEventListener("keydown", escape);
+    window.addEventListener("touchmove", touchMove, { passive: false });
+    window.addEventListener("blur", cancelDrag);
+    window.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    return () => {
+      window.removeEventListener("keydown", escape);
+      window.removeEventListener("touchmove", touchMove);
+      window.removeEventListener("blur", cancelDrag);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+    };
+  });
+  useEffect(() => () => clearTimeout(dragState.current?.timer), []);
+  function closeInfo() {
+    setInfo(null);
+    setPhoto(false);
+    requestAnimationFrame(() => infoTrigger.current?.focus());
+  }
+  async function exportImage(share = false, wrist = false) {
+    try {
+      const svg = wrist
+        ? document.querySelector(".wrist-image")
+        : stage.current?.querySelector("svg");
+      if (!svg) return;
+      const copy = svg.cloneNode(true);
+      copy.querySelectorAll('[role="button"]').forEach((g) => {
+        if (g.getAttribute("aria-label")?.startsWith("Вставить")) g.remove();
+      });
+      await Promise.all(
+        [...copy.querySelectorAll("image")].map(async (image) => {
+          const response = await fetch(image.getAttribute("href"));
+          if (!response.ok) throw new Error("image");
+          const blob = await response.blob();
+          const url = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+          image.setAttribute("href", url);
+        }),
+      );
+      copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      copy.setAttribute("width", "800");
+      copy.setAttribute("height", "760");
+      const image = new Image();
+      const svgUrl = URL.createObjectURL(
+        new Blob([new XMLSerializer().serializeToString(copy)], {
+          type: "image/svg+xml",
+        }),
+      );
+      try {
+        await new Promise((resolve, reject) => {
+          image.onload = resolve;
+          image.onerror = reject;
+          image.src = svgUrl;
+        });
+        const canvas = document.createElement("canvas");
+        canvas.width = 800;
+        canvas.height = 900;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#faf7ef";
+        ctx.fillRect(0, 0, 800, 900);
+        ctx.drawImage(image, 0, 50);
+        ctx.fillStyle = "#304b39";
+        ctx.textAlign = "center";
+        ctx.font = "22px sans-serif";
+        ctx.fillText("ENOSI · визуальный эскиз", 400, 35);
+        ctx.font = "15px sans-serif";
+        ctx.fillText("Оттенки и посадку уточним перед изготовлением", 400, 870);
+        const blob = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/png"),
+        );
+        const file = new File([blob], "ENOSI-eskiz.png", { type: "image/png" });
+        if (share && navigator.canShare?.({ files: [file] }))
+          await navigator.share({
+            title: "Эскиз ENOSI",
+            text: detail,
+            files: [file],
+          });
+        else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = file.name;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          if (share)
+            setNotice("Эскиз скачан. Приложите его к сообщению автору.");
+        }
+      } finally {
+        URL.revokeObjectURL(svgUrl);
+      }
+    } catch (error) {
+      if (error?.name !== "AbortError")
+        setNotice("Не удалось сохранить изображение. Попробуйте ещё раз.");
+    }
+  }
+  return (
+    <section
+      id="constructor"
+      className="builder section-space workshop"
+      aria-labelledby="builder-title"
+    >
+      <div className="builder-head">
+        <span className="eyebrow">МАСТЕРСКАЯ ENOSI</span>
+        <h2 id="builder-title">
+          Создай свой <em>браслет</em>
+        </h2>
+        <p>Ваши оттенки. Ваше сочетание. Ручная работа Екатерины.</p>
+      </div>
+      <ol className="workshop-steps">
+        <li aria-current={step === "build" ? "step" : undefined}>Соберите</li>
+        <li aria-current={step === "try" ? "step" : undefined}>
+          Посмотрите на руке
+        </li>
+        <li aria-current={step === "order" ? "step" : undefined}>
+          Обсудите изготовление
+        </li>
+      </ol>
+      <div className="builder-start">
+        <button
+          aria-pressed={mode === "ideas"}
+          onClick={() => {
+            setMode("ideas");
+            setStep("build");
+          }}
+        >
+          Из готового сочетания
+        </button>
+        <button aria-pressed={mode === "new"} onClick={startNew}>
+          С нуля
+        </button>
+      </div>
+      {mode === "ideas" && (
+        <div className="builder-ideas">
+          {ideas.map((idea) => (
+            <button
+              key={idea.name}
+              onClick={() => {
+                commit(
+                  validate({
+                    ...sketch,
+                    beads: Array.from(
+                      { length: 24 },
+                      (_, i) => idea.ids[i % idea.ids.length],
+                    ),
+                  }),
+                );
+                setMode("new");
+              }}
+            >
+              <span className="idea-beads">
+                {idea.ids.map((id) => (
+                  <img key={id} src={material(id).image} alt="" />
+                ))}
+              </span>
+              {idea.name}
+            </button>
+          ))}
+        </div>
+      )}
+      {(mode || sketch.beads.length > 0) && (
+        <div className="builder-grid">
+          <div className="workshop-stage" ref={stage}>
+            <div className="workshop-preview">
+              <Bracelet
+                sketch={sketch}
+                interactive={step === "build"}
+                selected={selected}
+                slot={drag?.slot}
+                onSelect={setSelected}
+                onInsert={insertAt}
+                onPointerDown={(e, i) => startPointer(e, "existing", i)}
+              />
+              {selected >= 0 && step === "build" && (
+                <div className="selection-actions">
+                  <span>
+                    {material(sketch.beads[selected]).name} · {selected + 1}
+                  </span>
+                  <button
+                    onClick={replace}
+                    disabled={!chosenMaterial.available}
+                  >
+                    Заменить
+                  </button>
+                  <button onClick={remove}>Удалить</button>
+                </div>
+              )}
+            </div>
+            <div className="workshop-controls">
+              <button onClick={undo} disabled={!past.length}>
+                Отменить
+              </button>
+              <button
+                disabled={!sketch.beads.length}
+                onClick={() => setStep(step === "try" ? "build" : "try")}
+              >
+                {step === "try" ? "Вернуться к сборке" : "Примерить на руке"}
+              </button>
+              <button
+                className="builder-primary"
+                disabled={!sketch.beads.length}
+                onClick={() => setStep("order")}
+              >
+                Обсудить заказ
+              </button>
+            </div>
+            <p className="chosen-status">
+              {step === "build"
+                ? `Выбрано: ${chosenMaterial.name}, ${chosenMaterial.size}. Нажмите + для вставки.`
+                : "Визуальный эскиз. Оттенки природных камней и посадку уточним перед изготовлением"}
+            </p>
+            <label className="wrist-label">
+              Обхват запястья, см
+              <input
+                type="number"
+                min="8"
+                max="30"
+                step="0.1"
+                placeholder="Не знаю размер"
+                value={sketch.wrist}
+                onChange={(e) =>
+                  setSketch({ ...sketch, wrist: e.target.value.slice(0, 5) })
+                }
+              />
+            </label>
+            <p className="workshop-notice" role="status">
+              {notice ||
+                `${sketch.beads.length} бусин · ${storage ? "Эскиз сохраняется на этом устройстве" : "Хранилище недоступно: скачайте эскиз"}`}
+            </p>
+          </div>
+          <div className="workshop-panel">
+            {step === "build" ? (
+              <>
+                <p className="gesture-hint">
+                  Перетащите бусину на +. На телефоне удерживайте её перед
+                  переносом или выберите нажатием и коснитесь +.
+                </p>
+                <div className="workshop-filters">
+                  <label>
+                    Поиск
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value.slice(0, 80))}
+                      placeholder="Название камня"
+                    />
+                  </label>
+                  <label>
+                    Форма
+                    <select
+                      value={shape}
+                      onChange={(e) => setShape(e.target.value)}
+                    >
+                      <option value="all">Все формы</option>
+                      {[
+                        "круглая",
+                        "матовая",
+                        "гранёная",
+                        "крошка",
+                        "цилиндр",
+                        "самородок",
+                      ].map((x) => (
+                        <option key={x}>{x}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="available">
+                    <input
+                      type="checkbox"
+                      checked={only}
+                      onChange={(e) => setOnly(e.target.checked)}
+                    />
+                    Только в наличии
+                  </label>
+                </div>
+                <div className="workshop-materials">
+                  {filtered.map((m) => (
+                    <article
+                      key={m.id}
+                      className={chosen === m.id ? "chosen" : ""}
+                    >
+                      <button
+                        className="material-select"
+                        aria-pressed={chosen === m.id}
+                        onClick={() => {
+                          setChosen(m.id);
+                          setNotice("");
+                        }}
+                        onPointerDown={(e) => startPointer(e, "palette", m.id)}
+                      >
+                        <img draggable="false" src={m.image} alt="" />
+                        <span>
+                          <strong>{m.name}</strong>
+                          <small>
+                            {m.size} · {m.shape}
+                          </small>
+                          <small>
+                            {m.available ? "В наличии" : "Нет в наличии"}
+                          </small>
+                        </span>
+                      </button>
+                      <button
+                        className="stone-info"
+                        aria-label={`О камне: ${m.name}, ${m.size}`}
+                        onClick={(e) => {
+                          infoTrigger.current = e.currentTarget;
+                          setInfo(m);
+                        }}
+                      >
+                        О камне
+                      </button>
+                    </article>
+                  ))}
+                </div>
+                {!filtered.length && (
+                  <p>
+                    Таких бусин не найдено. Попробуйте другой запрос или форму.
+                  </p>
+                )}
+                <details className="workshop-extra">
+                  <summary>Дополнительно</summary>
+                  <label>
+                    Название браслета
+                    <input
+                      maxLength="60"
+                      value={sketch.name}
+                      onChange={(e) =>
+                        setSketch({ ...sketch, name: e.target.value })
+                      }
+                    />
+                  </label>
+                  <div className="builder-actions">
+                    <button onClick={redo} disabled={!future.length}>
+                      Повторить
+                    </button>
+                    <button
+                      disabled={
+                        !sketch.beads.length || sketch.beads.length * 2 > LIMIT
+                      }
+                      onClick={() =>
+                        commit(
+                          validate({
+                            ...sketch,
+                            beads: [...sketch.beads, ...sketch.beads],
+                            instanceIds: [],
+                          }),
+                        )
+                      }
+                    >
+                      Повторить последовательность
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm("Очистить браслет?"))
+                          commit({ ...sketch, beads: [], instanceIds: [] });
+                      }}
+                    >
+                      Очистить
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSaved([...saved.slice(-19), validate(sketch)]);
+                        setNotice("Вариант сохранён.");
+                      }}
+                    >
+                      Сохранить вариант
+                    </button>
+                  </div>
+                  {saved.length > 0 && (
+                    <label>
+                      Сохранённые варианты
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          const item = saved[Number(e.target.value)];
+                          if (item) commit(item);
+                        }}
+                      >
+                        <option value="">Выберите вариант</option>
+                        {saved.map((s, i) => (
+                          <option key={i} value={i}>
+                            {s.name || `Вариант ${i + 1}`}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  {selected >= 0 && (
+                    <div className="builder-actions">
+                      <button
+                        disabled={selected === 0}
+                        onClick={() => {
+                          const beads = [...sketch.beads],
+                            instanceIds = [...sketch.instanceIds];
+                          [beads[selected - 1], beads[selected]] = [
+                            beads[selected],
+                            beads[selected - 1],
+                          ];
+                          [instanceIds[selected - 1], instanceIds[selected]] = [
+                            instanceIds[selected],
+                            instanceIds[selected - 1],
+                          ];
+                          commit({ ...sketch, beads, instanceIds });
+                        }}
+                      >
+                        Переместить влево
+                      </button>
+                      <button
+                        disabled={selected === sketch.beads.length - 1}
+                        onClick={() => {
+                          const beads = [...sketch.beads],
+                            instanceIds = [...sketch.instanceIds];
+                          [beads[selected + 1], beads[selected]] = [
+                            beads[selected],
+                            beads[selected + 1],
+                          ];
+                          [instanceIds[selected + 1], instanceIds[selected]] = [
+                            instanceIds[selected],
+                            instanceIds[selected + 1],
+                          ];
+                          commit({ ...sketch, beads, instanceIds });
+                        }}
+                      >
+                        Переместить вправо
+                      </button>
+                    </div>
+                  )}
+                </details>
+              </>
+            ) : step === "try" ? (
+              <div className="try-panel">
+                <h3>Ваше сочетание на запястье</h3>
+                <p>
+                  Локальный визуальный эскиз. Масштаб ориентировочный: посадка
+                  зависит от обхвата запястья и размеров бусин.
+                </p>
+                <div className="wrist-preview">
+                  <WristPreview sketch={sketch} />
+                </div>
+                <p>
+                  Фон запястья создан для ENOSI. Часть бусин скрыта за
+                  запястьем. Это приближённая визуализация, детали крошки и
+                  посадку проверит автор.
+                </p>
+                <p>
+                  Визуальный эскиз. Оттенки природных камней и посадку уточним
+                  перед изготовлением
+                </p>
+                <button onClick={() => exportImage(false, true)}>
+                  Сохранить примерку
+                </button>
+                <button onClick={() => setStep("build")}>
+                  Вернуться к редактированию
+                </button>
+              </div>
+            ) : (
+              <div className="order-panel">
+                <h3>Ваш эскиз — начало заказа</h3>
+                <p>
+                  Размер:{" "}
+                  {sketch.wrist ? `${sketch.wrist} см` : "Нужно подобрать"}.
+                  Стоимость и посадку Екатерина уточнит перед изготовлением.
+                </p>
+                <label>
+                  Пожелания
+                  <textarea
+                    maxLength="500"
+                    value={sketch.wishes}
+                    onChange={(e) =>
+                      setSketch({ ...sketch, wishes: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  Описание эскиза
+                  <textarea
+                    readOnly
+                    value={detail}
+                    aria-label="Описание эскиза для копирования"
+                    onFocus={(e) => e.target.select()}
+                  />
+                </label>
+                <div className="builder-actions">
+                  <button onClick={() => exportImage(true)}>
+                    Поделиться эскизом
+                  </button>
+                  <button onClick={() => exportImage()}>Скачать эскиз</button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(detail);
+                        setNotice("Описание скопировано.");
+                      } catch {
+                        setNotice(
+                          "Выделите текст описания и скопируйте вручную.",
+                        );
+                      }
+                    }}
+                  >
+                    Скопировать описание
+                  </button>
+                </div>
+                <p>
+                  Приложите изображение и описание в сообщении. Отправку вы
+                  подтверждаете самостоятельно.
+                </p>
+                <div className="order-contacts">
+                  <a
+                    href={`${TELEGRAM}?text=${encodeURIComponent(detail)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Написать в Telegram
+                  </a>
+                  <a href={MAX} target="_blank" rel="noopener noreferrer">
+                    Написать в MAX
+                  </a>
+                </div>
+                <button onClick={() => setStep("build")}>
+                  Вернуться к редактированию
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {drag && (
+        <div
+          className="bead-drag-preview"
+          style={{ left: drag.x, top: drag.y }}
+        >
+          <img
+            src={
+              material(
+                drag.source === "palette"
+                  ? drag.index
+                  : sketch.beads[drag.index],
+              ).image
+            }
+            alt=""
+          />
+        </div>
+      )}
+      {info && (
+        <div
+          className="workshop-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeInfo();
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="stone-info-title"
+            className="workshop-modal"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") closeInfo();
+              if (e.key === "Tab") {
+                const buttons = [...e.currentTarget.querySelectorAll("button")];
+                const index = buttons.indexOf(document.activeElement);
+                e.preventDefault();
+                buttons[
+                  (index + (e.shiftKey ? -1 : 1) + buttons.length) %
+                    buttons.length
+                ]?.focus();
+              }
+            }}
+          >
+            <button autoFocus onClick={closeInfo}>
+              Закрыть ×
+            </button>
+            <img
+              src={info.image}
+              alt={`${info.name}, ${info.size}`}
+              className={photo ? "enlarged" : ""}
+            />
+            <h3 id="stone-info-title">{info.name}</h3>
+            <p>
+              {info.size} · {info.shape}
+              {info.treatment ? ` · ${info.treatment}` : ""}
+            </p>
+            <p>{materialStory(info)}</p>
+            <p className="symbol-note">
+              Символика — авторское прочтение ENOSI. Природный рисунок и оттенки
+              отличаются от бусины к бусине.
+            </p>
+            <button onClick={() => setPhoto(!photo)}>
+              {photo ? "Уменьшить" : "Увеличить фото"}
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
 }

@@ -1,30 +1,215 @@
-import {test,expect} from '@playwright/test';
-const MAX='https://max.ru/u/f9LHodD0cOL0UMph0aJXniNSXxQtPOUQcCmjElEUAEtc-cQi4j2GZmhCvzw';
-test('constructor adds, replaces, reorders and restores an honest sketch',async({page})=>{
- await page.goto('/');const b=page.locator('#constructor');await b.getByRole('button',{name:'Создать с нуля'}).click();await expect(b.getByText('Выберите первую бусину').first()).toBeVisible();await expect(b.locator('.material-list button')).toHaveCount(30);
- await b.getByRole('button',{name:'Добавить бусину'}).click();await expect(b.getByText(/Элементов: 1/)).toBeVisible();await b.locator('.material-list button').filter({hasText:'Родонит'}).click();await b.getByRole('button',{name:'Добавить после'}).click();await expect(b.getByText(/Элементов: 2/)).toBeVisible();
- await b.getByRole('button',{name:'Разложить в линию'}).click();await expect(b.locator('.bead-line button')).toHaveCount(2);await b.getByRole('button',{name:'← Переместить'}).click();await expect(b.locator('.position-list button').first()).toContainText('Родонит');await b.getByRole('button',{name:'Отменить',exact:true}).click();await expect(b.locator('.position-list button').first()).toContainText('Горный хрусталь');
- await b.getByLabel('Название браслета (необязательно)').fill('Моя идея');await b.getByRole('button',{name:'Сохранить вариант'}).click();await page.reload();await expect(b.getByLabel('Название браслета (необязательно)')).toHaveValue('Моя идея');await b.getByRole('button',{name:'Обсудить мой браслет'}).click();await expect(b.getByLabel('Описание эскиза для копирования')).toHaveValue(/Горный хрусталь/);await expect(b.getByRole('link',{name:'Написать в MAX'})).toHaveAttribute('href',MAX);const [download]=await Promise.all([page.waitForEvent('download'),b.getByRole('button',{name:'Скачать эскиз'}).click()]);expect(download.suggestedFilename()).toBe('ENOSI-eskiz.png');
+import { test, expect } from "@playwright/test";
+const key = "enosi-bracelet-builder-v1";
+async function start(page) {
+  await page.goto("/");
+  await page.getByRole("button", { name: "С нуля", exact: true }).click();
+}
+async function read(page) {
+  return page.evaluate(
+    (key) => JSON.parse(localStorage.getItem(key)).current,
+    key,
+  );
+}
+async function add(page, slot = 1) {
+  await page
+    .getByRole("button", {
+      name: `Вставить бусину: место ${slot}`,
+      exact: true,
+    })
+    .click();
+}
+test("starts from an idea, then restores existing designs with unique instances", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (key) =>
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          current: { beads: ["m11", "m11", "m01"], wrist: "17" },
+          saved: [{ beads: ["m03"], name: "Мой вариант" }],
+        }),
+      ),
+    key,
+  );
+  await page.goto("/");
+  const s = await read(page);
+  expect(s.beads).toEqual(["m11", "m11", "m01"]);
+  expect(new Set(s.instanceIds).size).toBe(3);
+  await page.locator(".workshop-extra summary").click();
+  await page.getByLabel("Сохранённые варианты").selectOption("0");
+  expect((await read(page)).beads).toEqual(["m03"]);
+  await page.getByRole("button", { name: "Из готового сочетания" }).click();
+  await page
+    .getByRole("button", { name: "Нежные оттенки", exact: true })
+    .click();
+  expect((await read(page)).beads).toHaveLength(24);
 });
-test('demonstration ideas and unrecognized stored materials stay visible',async({page})=>{
- await page.addInitScript(()=>localStorage.setItem('enosi-bracelet-builder-v1',JSON.stringify({current:{beads:['retired-id']},saved:[]})));await page.goto('/');const b=page.locator('#constructor');await expect(b.getByText(/Неизвестный материал/).first()).toBeVisible();await b.getByRole('button',{name:'Изменить готовый браслет'}).click();await expect(b.getByText('Идея для вашего браслета')).toHaveCount(3);await b.getByRole('button',{name:/Нежные оттенки/}).click();await expect(b.getByText(/Элементов: 6/)).toBeVisible();
+test("tap and keyboard insert at exact gaps, replace and delete independently, undo restores IDs", async ({
+  page,
+}) => {
+  await start(page);
+  await add(page);
+  await page.locator(".material-select").filter({ hasText: "Родонит" }).click();
+  await add(page, 1);
+  const before = await read(page);
+  expect(before.beads).toEqual(["m02", "m01"]);
+  await page
+    .getByRole("button", { name: "Позиция 2: Горный хрусталь", exact: true })
+    .focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Заменить", exact: true }).click();
+  expect((await read(page)).beads).toEqual(["m02", "m02"]);
+  await page
+    .getByRole("button", { name: "Позиция 1: Родонит", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Удалить", exact: true }).click();
+  expect((await read(page)).beads).toEqual(["m02"]);
+  await page.getByRole("button", { name: "Отменить", exact: true }).click();
+  expect((await read(page)).instanceIds).toEqual(before.instanceIds);
 });
-test('sketch works when device storage is unavailable',async({page})=>{
- await page.addInitScript(()=>{Object.defineProperty(Storage.prototype,'getItem',{value(){throw new Error('blocked')}});Object.defineProperty(Storage.prototype,'setItem',{value(){throw new Error('blocked')}})});await page.goto('/');const b=page.locator('#constructor');await b.getByRole('button',{name:'Создать с нуля'}).click();await b.getByRole('button',{name:'Добавить бусину'}).click();await expect(b.getByText(/Не удалось сохранить/)).toBeVisible();await expect(b.getByText(/Элементов: 1/)).toBeVisible();
+test("mouse transfer inserts and cancelled drops leave sequence unchanged", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile);
+  await start(page);
+  const card = page.locator(".material-select").first();
+  await card.scrollIntoViewIfNeeded();
+  const box = await card.boundingBox();
+  const svg = page.locator(".workshop-stage svg.workshop-bracelet");
+  const target = await svg.boundingBox();
+  await page.mouse.move(box.x + 30, box.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(
+    target.x + target.width / 2,
+    target.y + target.height / 2,
+    { steps: 12 },
+  );
+  await page.mouse.up();
+  expect((await read(page)).beads).toEqual(["m01"]);
+  const saved = await read(page);
+  await page.mouse.move(box.x + 30, box.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(3, 3, { steps: 10 });
+  await page.mouse.up();
+  expect((await read(page)).instanceIds).toEqual(saved.instanceIds);
 });
-test('material filters and unavailable selection are safe',async({page})=>{
- await page.goto('/');await page.evaluate(async()=>{const url=performance.getEntriesByType('resource').map(r=>r.name).find(n=>n.includes('/src/data/materials.js')) || '/src/data/materials.js';const m=await import(url);m.byId.m01.available=false});const b=page.locator('#constructor');await b.getByRole('button',{name:'Создать с нуля'}).click();await b.getByLabel('Только в наличии').uncheck();await expect(b.locator('.material-list button').first()).toContainText('Нет в наличии');await b.locator('.material-list button').first().click();await b.getByRole('button',{name:'Добавить бусину'}).click();await expect(b.getByText('Этот материал сейчас недоступен.')).toBeVisible();await expect(b.getByText(/Элементов: 0/)).toBeVisible();await b.getByLabel('Поиск', {exact:true}).fill('аметист');await expect(b.locator('.material-list button')).toHaveCount(4);await b.getByLabel('Форма').selectOption('самородок');await expect(b.locator('.material-list button')).toHaveCount(1);
+test("same beads reorder independently with no loss", async ({ page }) => {
+  await start(page);
+  await add(page);
+  await add(page, 2);
+  await page.locator(".material-select").filter({ hasText: "Родонит" }).click();
+  await add(page, 3);
+  const old = await read(page);
+  await page
+    .getByRole("button", { name: "Позиция 2: Горный хрусталь", exact: true })
+    .click();
+  await page.locator(".workshop-extra summary").click();
+  await page.getByRole("button", { name: "Переместить вправо" }).click();
+  const now = await read(page);
+  expect(now.beads).toEqual(["m01", "m02", "m01"]);
+  expect(now.instanceIds).toEqual([
+    old.instanceIds[0],
+    old.instanceIds[2],
+    old.instanceIds[1],
+  ]);
 });
-test('clipboard fallback exposes text and selection is accessible by keyboard',async({page})=>{
- await page.addInitScript(()=>Object.defineProperty(navigator,'clipboard',{value:{writeText:()=>Promise.reject(new Error('blocked'))}}));await page.goto('/');const b=page.locator('#constructor');await b.getByRole('button',{name:'Создать с нуля'}).click();await b.getByRole('button',{name:'Добавить бусину'}).click();const bead=b.locator('svg [role=button]').first();await bead.focus();await page.keyboard.press('Enter');await expect(bead).toHaveAttribute('aria-pressed','true');await b.getByRole('button',{name:'Обсудить мой браслет'}).click();await b.getByRole('button',{name:'Скопировать описание'}).click();await expect(b.getByText('Выделите текст ниже и скопируйте вручную.')).toBeVisible();await expect(b.getByLabel('Описание эскиза для копирования')).toHaveValue(/Горный хрусталь/);
+test("stone info is separate, enlarged image closes with focus restored", async ({
+  page,
+}) => {
+  await start(page);
+  await page.locator(".material-select").filter({ hasText: "Родонит" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  const button = page.getByRole("button", { name: "О камне: Родонит, 8 мм" });
+  await button.click();
+  await expect(page.getByRole("dialog")).toContainText("индивидуальности");
+  await page
+    .getByRole("button", { name: "Увеличить фото", exact: true })
+    .click();
+  await expect(page.getByRole("dialog").locator("img")).toHaveClass("enlarged");
+  await page.keyboard.press("Escape");
+  await expect(button).toBeFocused();
 });
-test('builder fits narrow screens and both modes remain usable',async({page})=>{
- for(const width of [320,375,390,768,1024,1440]){await page.setViewportSize({width,height:850});await page.goto('/');const b=page.locator('#constructor');await b.getByRole('button',{name:'Изменить готовый браслет'}).click();await b.getByRole('button',{name:/Нежные оттенки/}).click();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await b.getByRole('button',{name:'Создать с нуля'}).click();await b.getByRole('button',{name:'Да, продолжить'}).click();await expect(b.getByText('Выберите первую бусину').first()).toBeVisible()}
+test("try-on and order reuse exact sequence and image can be downloaded", async ({
+  page,
+}) => {
+  await start(page);
+  await add(page);
+  await add(page, 2);
+  await page.getByLabel("Обхват запястья, см").fill("17");
+  await page
+    .getByRole("button", { name: "Примерить на руке", exact: true })
+    .click();
+  await expect(page.locator(".wrist-image")).toBeVisible();
+  expect(
+    await page
+      .locator(".wrist-image g[data-material]")
+      .evaluateAll((nodes) => nodes.map((n) => n.dataset.material)),
+  ).toEqual(["m01", "m01"]);
+  await expect(page.locator(".wrist-image svg image")).toHaveCount(2);
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Сохранить примерку" }).click();
+  expect((await download).suggestedFilename()).toBe("ENOSI-eskiz.png");
+  await page
+    .getByRole("button", { name: "Обсудить заказ", exact: true })
+    .click();
+  await expect(page.getByLabel("Описание эскиза для копирования")).toHaveValue(
+    /Горный хрусталь.*2 шт/s,
+  );
+  await expect(
+    page.getByRole("link", { name: "Написать в Telegram", exact: true }),
+  ).toHaveAttribute("href", /^https:\/\/t.me\/BeliakovaKaterina\?text=/);
+  await expect(
+    page.getByRole("link", { name: "Написать в MAX", exact: true }).first(),
+  ).toHaveAttribute("href", /^https:\/\/max.ru\/u\//);
+  await page.reload();
+  expect((await read(page)).beads).toEqual(["m01", "m01"]);
 });
-test('sharing offers the sketch and description without sending automatically', async ({page})=>{
- await page.addInitScript(()=>{window.__shared=null;Object.defineProperty(navigator,'canShare',{value:()=>true});Object.defineProperty(navigator,'share',{value:async data=>{window.__shared={text:data.text,name:data.files[0].name,type:data.files[0].type}}})});
- await page.goto('/');const b=page.locator('#constructor');await b.getByRole('button',{name:'Создать с нуля'}).click();await b.getByRole('button',{name:'Добавить бусину'}).click();await b.getByRole('button',{name:'Обсудить мой браслет'}).click();await b.getByRole('button',{name:'Поделиться эскизом'}).click();await expect.poll(()=>page.evaluate(()=>window.__shared?.name)).toBe('ENOSI-eskiz.png');expect(await page.evaluate(()=>window.__shared.text)).toContain('Горный хрусталь');
+test("layout fits narrow screens and materials remain reachable", async ({
+  page,
+}) => {
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await start(page);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.locator(".material-select").last().scrollIntoViewIfNeeded();
+    await expect(page.locator(".workshop-stage")).toBeVisible();
+  }
 });
-test('author bead photographs are shown in picker and in the design',async({page})=>{
- await page.goto('/');const b=page.locator('#constructor');await b.getByRole('button',{name:'Создать с нуля'}).click();await expect(b.locator('.material-list button')).toHaveCount(30);const preview=b.locator('.bead-preview img');await expect(preview).toHaveAttribute('src',/bead-photos\/m01\.webp/);await b.getByRole('button',{name:'Добавить бусину'}).click();await expect(b.locator('.bracelet-canvas svg image').first()).toHaveAttribute('href',/bead-photos\/m01\.webp/);await expect(b.locator('.bracelet-canvas svg svg').first()).toHaveAttribute('viewBox', /^\d+ \d+ \d+ \d+$/);await b.locator('.material-list button').filter({hasText:'Родонит'}).click();await expect(preview).toHaveAttribute('src',/bead-photos\/m02\.webp/);await b.getByRole('button',{name:'Увеличить фото'}).click();await expect(b.getByRole('dialog',{name:'Фото: Родонит'})).toBeVisible();await page.keyboard.press('Escape');await expect(b.getByRole('dialog',{name:'Фото: Родонит'})).toHaveCount(0);await expect(b.getByRole('button',{name:'Увеличить фото'})).toBeFocused();
+test("touch movement before hold cancels drag without inserting", async ({
+  page,
+}) => {
+  await start(page);
+  const b = page.locator(".material-select").first();
+  await b.dispatchEvent("pointerdown", {
+    pointerId: 12,
+    pointerType: "touch",
+    button: 0,
+    clientX: 100,
+    clientY: 400,
+  });
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new PointerEvent("pointermove", {
+        pointerId: 12,
+        pointerType: "touch",
+        clientX: 100,
+        clientY: 430,
+      }),
+    );
+    window.dispatchEvent(
+      new PointerEvent("pointerup", {
+        pointerId: 12,
+        pointerType: "touch",
+        clientX: 100,
+        clientY: 430,
+      }),
+    );
+  });
+  expect((await read(page)).beads).toEqual([]);
 });

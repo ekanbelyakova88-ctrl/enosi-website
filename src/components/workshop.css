@@ -1,0 +1,342 @@
+.workshop .builder-grid {
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 40px;
+}
+.workshop-steps {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  list-style: none;
+  padding: 0;
+  margin: 25px 0;
+  color: #60735c;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.workshop-steps [aria-current] {
+  color: #874b5d;
+  border-bottom: 2px solid #a76076;
+  padding-bottom: 8px;
+}
+.workshop-stage {
+  position: sticky;
+  top: 115px;
+  min-width: 0;
+}
+.workshop-preview {
+  background: #fcfaf3;
+  border-radius: 30px;
+  position: relative;
+  padding: 10px;
+}
+.workshop-bracelet {
+  display: block;
+  width: 100%;
+  max-height: 400px;
+  touch-action: pan-y;
+}
+.workshop-bracelet g[role="button"] {
+  cursor: pointer;
+  outline: none;
+}
+.workshop-bracelet g:focus-visible > circle {
+  stroke: #963d5b;
+  stroke-width: 3;
+}
+.workshop-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.workshop-controls button {
+  flex: 1;
+  font-size: 12px;
+}
+.workshop .selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.chosen-status,
+.workshop-notice,
+.gesture-hint {
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 14px 0;
+}
+.workshop .wrist-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+}
+.workshop .wrist-label input {
+  width: 150px;
+  margin: 0;
+}
+.workshop-panel {
+  min-width: 0;
+}
+.workshop-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: end;
+}
+.workshop-filters .available {
+  grid-column: 1/-1;
+}
+.workshop-materials {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.workshop-materials article {
+  border-bottom: 1px solid #bdcdb6;
+  padding: 8px 0;
+  min-width: 0;
+}
+.workshop-materials article.chosen {
+  border-bottom: 2px solid #985268;
+  background: #f7eae7;
+}
+.workshop .material-select {
+  display: flex;
+  text-align: left;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 8px 4px;
+  touch-action: pan-y;
+  user-select: none;
+}
+.material-select img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.material-select strong,
+.material-select small {
+  display: block;
+  line-height: 1.5;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.material-select small {
+  font-size: 11px;
+}
+.workshop .stone-info {
+  border: 0;
+  border-bottom: 1px solid #8d9e84;
+  border-radius: 0;
+  background: transparent;
+  font-size: 11px;
+  padding: 3px 0;
+  min-height: 30px;
+  margin-left: 8px;
+}
+.workshop-extra {
+  margin-top: 25px;
+  border-top: 1px solid #bdcdb6;
+  padding-top: 18px;
+}
+.workshop-extra summary {
+  cursor: pointer;
+  padding: 10px 0;
+}
+.bead-drag-preview {
+  position: fixed;
+  z-index: 500;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  box-shadow: 0 4px 15px #0003;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.bead-drag-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.workshop-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #26392ba6;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.workshop-modal {
+  background: #faf7ef;
+  border-radius: 20px;
+  padding: 24px;
+  width: min(100%, 520px);
+  max-height: 90dvh;
+  overflow: auto;
+}
+.workshop-modal > img {
+  display: block;
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  margin: 15px auto;
+}
+.workshop-modal > img.enlarged {
+  width: 100%;
+  height: auto;
+  max-height: 45vh;
+}
+.workshop h3 {
+  font: 36px var(--serif);
+  margin: 14px 0;
+}
+.workshop-modal p,
+.try-panel p,
+.order-panel p {
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 12px 0;
+}
+.order-contacts {
+  display: flex;
+  gap: 10px;
+  margin: 15px 0;
+  flex-wrap: wrap;
+}
+.order-contacts a {
+  padding: 14px 20px;
+  background: #405f46;
+  color: white;
+  border-radius: 7px;
+}
+.symbol-note {
+  color: #5f6c58;
+}
+.wrist-preview {
+  background: #ede6dc;
+  border-radius: 15px;
+  position: relative;
+  overflow: hidden;
+}
+.wrist-preview svg {
+  filter: drop-shadow(1px 3px 2px #624f4533);
+}
+@media (max-width: 760px) {
+  .workshop .builder-grid {
+    display: block;
+  }
+  .workshop-stage {
+    top: 92px;
+    z-index: 5;
+    background: #edf1e7;
+    padding: 8px 0;
+    border-bottom: 1px solid #bdcdb6;
+  }
+  .workshop-preview {
+    padding: 0;
+    border-radius: 18px;
+  }
+  .workshop-bracelet {
+    max-height: 210px;
+  }
+  .workshop-controls {
+    margin-top: 7px;
+    gap: 5px;
+  }
+  .workshop-controls button {
+    padding: 8px;
+    font-size: 11px;
+  }
+  .workshop-stage .chosen-status {
+    margin: 7px 0;
+    font-size: 11px;
+  }
+  .workshop-stage .wrist-label {
+    font-size: 11px;
+    margin: 5px 0;
+  }
+  .workshop-stage .wrist-label input {
+    padding: 5px;
+    width: 130px;
+  }
+  .workshop-notice {
+    font-size: 10px;
+    margin: 5px 0;
+  }
+  .workshop-panel {
+    padding-top: 18px;
+  }
+  .material-select img {
+    width: 48px;
+    height: 48px;
+  }
+  .workshop-materials {
+    gap: 8px;
+  }
+  .workshop-steps {
+    gap: 12px;
+    font-size: 11px;
+  }
+  .workshop .builder-head h2 {
+    font-size: 50px;
+  }
+  .workshop-modal {
+    padding: 20px;
+  }
+}
+@media (max-height: 650px) {
+  .workshop-stage {
+    position: static;
+  }
+}
+.wrist-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: none !important;
+}
+.workshop .material-select[aria-pressed="true"] {
+  background: transparent !important;
+  color: #304b39 !important;
+  border-color: transparent !important;
+}
+.workshop .looks > .section-heading > p {
+  color: #526349;
+}
+/* При вводе размера панель освобождает место экранной клавиатуре. */
+@media (max-width: 760px) {
+  .workshop-stage:has(input:focus) {
+    position: static;
+  }
+}
+
+.workshop-steps {
+  color: #52664d;
+}
+.looks > .section-heading > p {
+  color: #526349;
+}
+.workshop-bracelet {
+  width: min(100%, 400px);
+  height: auto;
+  max-height: none;
+  margin: auto;
+}
+@media (max-width: 760px) {
+  .workshop-bracelet {
+    width: min(100%, 210px);
+    max-height: none;
+  }
+}

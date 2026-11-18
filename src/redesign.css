@@ -234,3 +234,13 @@ body { color:#294238; background:#fbfaf6; }
 .looks .looks-grid .look-card { border-radius:12px; overflow:hidden; }
 .looks .looks-grid .look-card > .branded-photo { border-radius:12px; overflow:hidden; }
 .looks .looks-grid .look-card > .branded-photo > .branded-image { border-radius:inherit; }
+
+/* Приглашение в мастерскую */
+.builder-hero-link { border: 1px solid #77917b; border-radius: 100px; }
+.builder-invitation { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .8fr); align-items: center; gap: 7%; padding: clamp(65px, 8vw, 110px) max(6%, calc((100% - 1150px) / 2)); background: #f7f4ed; }
+.invitation-copy h2 { font: 400 clamp(48px, 6vw, 78px)/1 var(--serif); margin: 20px 0; }
+.invitation-copy h2 em { color: #9e586b; }
+.invitation-copy p { max-width: 440px; line-height: 1.8; margin-bottom: 25px; }
+.invitation-beads { position: relative; width: min(100%, 320px); aspect-ratio: 1; justify-self: center; border: 1px solid #cbd7c6; border-radius: 50%; }
+.invitation-beads img { position: absolute; width: 20%; aspect-ratio: 1; object-fit: cover; border-radius: 50%; left: calc(50% + 45% * cos(var(--bead-index) * 45deg) - 10%); top: calc(50% + 45% * sin(var(--bead-index) * 45deg) - 10%); }
+@media(max-width:760px) { .builder-invitation { grid-template-columns: 1fr; gap: 48px; } .invitation-beads { width: min(75%, 250px); } .hero-buttons { flex-wrap: wrap; } }
