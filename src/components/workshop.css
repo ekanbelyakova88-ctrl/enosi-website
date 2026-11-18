@@ -340,3 +340,7 @@
     max-height: none;
   }
 }
+.hero-details .hero-buttons {
+  flex-wrap: wrap;
+  gap: 12px;
+}

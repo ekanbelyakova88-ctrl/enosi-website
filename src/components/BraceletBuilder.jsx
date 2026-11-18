@@ -557,6 +557,16 @@ export default function BraceletBuilder() {
             <button
               key={idea.name}
               onClick={() => {
+                if (
+                  idea.ids.some(
+                    (id) => !material(id).available || !material(id).active,
+                  )
+                ) {
+                  setNotice(
+                    "Часть материалов этого сочетания сейчас недоступна. Выберите другие бусины.",
+                  );
+                  return;
+                }
                 commit(
                   validate({
                     ...sketch,
@@ -755,7 +765,12 @@ export default function BraceletBuilder() {
                     </button>
                     <button
                       disabled={
-                        !sketch.beads.length || sketch.beads.length * 2 > LIMIT
+                        !sketch.beads.length ||
+                        sketch.beads.length * 2 > LIMIT ||
+                        sketch.beads.some(
+                          (id) =>
+                            !material(id).available || !material(id).active,
+                        )
                       }
                       onClick={() =>
                         commit(
