@@ -3,6 +3,11 @@ name: Publish ENOSI demo
 # Publication is manual: commits and pull requests never publish the website.
 on:
   workflow_dispatch:
+    inputs:
+      preview_workshop:
+        description: Include the bracelet workshop review under /workshop-preview/
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -24,6 +29,16 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm run build
+      - name: Add isolated workshop review
+        if: ${{ inputs.preview_workshop }}
+        run: |
+          git fetch origin enosi-builder-preview
+          git worktree add "$RUNNER_TEMP/enosi-preview" FETCH_HEAD
+          cd "$RUNNER_TEMP/enosi-preview"
+          npm ci --no-audit --no-fund
+          npm run build
+          mkdir -p "$GITHUB_WORKSPACE/dist/workshop-preview"
+          cp -a dist/. "$GITHUB_WORKSPACE/dist/workshop-preview/"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
