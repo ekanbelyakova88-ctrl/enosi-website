@@ -37,6 +37,7 @@ import logo from "./assets/logo-enosi-transparent.png";
 import heroCollection from "./assets/hero-collection.webp";
 import giftConcept from "./assets/gift-concept.webp";
 import "./styles.css";
+import "./redesign.css";
 
 const questions = [
   [
@@ -398,6 +399,19 @@ function App() {
             <h1 id="hero-title">
               <span className="hero-heading-line">Украшение с характером</span>{" "}<em className="hero-heading-line">для вашей истории</em>
             </h1>
+          </div>
+          <figure className="hero-feature">
+            <BrandedPhoto
+              className="hero-neutral"
+              imageClassName="hero-image"
+              src={heroCollection}
+              alt="Художественная композиция из браслетов с разноцветными камнями"
+              loading="eager"
+              fetchPriority="high"
+            />
+            <figcaption className="hero-image-note">Художественная композиция · варианты украшений</figcaption>
+          </figure>
+          <div className="hero-details">
             <p>
               Каждый камень уникален. Соединяясь, оттенки и фактуры создают характер украшения, а его историю и смысл выбираете вы.
             </p>
@@ -410,15 +424,6 @@ function App() {
               </a>
             </div>
           </div>
-          <BrandedPhoto
-            className="hero-neutral"
-            imageClassName="hero-image"
-            src={heroCollection}
-            alt="Художественная композиция из браслетов с разноцветными камнями"
-            loading="eager"
-            fetchPriority="high"
-          />
-          <p className="hero-image-note">Художественная композиция · варианты украшений</p>
         </section>
 
         <div className="values-strip">
@@ -529,7 +534,7 @@ function App() {
                     {product.name}
                   </button>
                   <p>{product.materials}</p>
-                  <p>{(product.price || 1990).toLocaleString("ru-RU")} ₽ · Изготовление на заказ</p>
+                  <p className="product-price"><strong>{(product.price || 1990).toLocaleString("ru-RU")} ₽</strong><span> · Изготовление на заказ</span></p>
                   <button
                     className="product-more"
                     onClick={(event) => openProduct(product, event)}
@@ -907,7 +912,7 @@ function App() {
               <span className="eyebrow">АВТОРСКОЕ СОЧЕТАНИЕ ENOSI</span>
               <h2 id="dialog-title">{selected.name}</h2>
               <p className="modal-palette">{selected.materials}</p>
-              <p>{(selected.price || 1990).toLocaleString("ru-RU")} ₽ · Изготовление на заказ. Размер — по вашим меркам.</p>
+              <p className="product-price"><strong>{(selected.price || 1990).toLocaleString("ru-RU")} ₽</strong><span> · Изготовление на заказ. Размер — по вашим меркам.</span></p>
               <p>{selected.description}</p>
               <p className="product-photo-note">Изображения стилизованы по фотографиям автора; детали изделия можно уточнить у Екатерины.</p>
               <StoneCard product={selected} />
