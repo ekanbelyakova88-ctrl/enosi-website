@@ -269,7 +269,7 @@ export default function BraceletBuilder() {
   const detail = useMemo(
     () =>
       describe(sketch) +
-      `\nЗаказ: ${sketch.orderId}\nПосадка: ${sketch.fit}\nЛичные темы: ${(sketch.themes || []).join(", ")}\nМоя история: ${sketch.intention || ""}\nСтоимость: ${estimate(sketch).price ?? "согласуется с автором"}`,
+      `\nЗаказ: ${sketch.orderId}\nОснова: ${production.constructions.find((c) => c.id === sketch.construction)?.name || "Нужно уточнить"}\nПосадка: ${{ close: "Плотная", classic: "Классическая", loose: "Свободная", unknown: "Нужно подобрать" }[sketch.fit] || "Нужно подобрать"}\nЛичные темы: ${(sketch.themes || []).join(", ")}\nМоя история: ${sketch.intention || ""}\nСтоимость: ${estimateNow.price === null ? "согласуется с автором" : estimateNow.price.toLocaleString("ru-RU") + " ₽"}`,
     [sketch],
   );
   const chosenMaterial = material(chosen);
