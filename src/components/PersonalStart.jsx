@@ -22,10 +22,34 @@ export function zodiac(value) {
   if (!Number.isFinite(d.getTime()) || d.toISOString().slice(0, 10) !== value)
     return null;
   const n = (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
-  const sign = signs.find((s) => n < s[1]);
+  const index = signs.findIndex((s) => n < s[1]);
+  const sign = signs[index];
+  const months = [
+    "января",
+    "февраля",
+    "марта",
+    "апреля",
+    "мая",
+    "июня",
+    "июля",
+    "августа",
+    "сентября",
+    "октября",
+    "ноября",
+    "декабря",
+  ];
+  const format = (value) =>
+    `${value % 100} ${months[Math.floor(value / 100) - 1]}`;
+  const range =
+    sign?.[0] === "Козерог"
+      ? "22 декабря — 19 января"
+      : sign
+        ? `${format(signs[index - 1][1])} — ${format(sign[1] - 1)}`
+        : "";
   return sign
     ? {
         name: sign[0],
+        range,
         element: sign[2],
         boundary: signs.some((s) => Math.abs(n - s[1]) <= 1),
       }
@@ -59,8 +83,8 @@ export default function PersonalStart({ sketch, onChange, onCompose, onInfo }) {
       </label>
       {sign && (
         <p>
-          {sign.name} · {sign.element}. Условные календарные границы западной
-          астрологии.{" "}
+          {sign.name} · {sign.range} · {sign.element}. Условные календарные
+          границы западной астрологии.{" "}
           {sign.boundary
             ? "Пограничная дата: точное положение Солнца зависит от года, времени и места рождения."
             : "Это символическая тема, а не характеристика человека."}
