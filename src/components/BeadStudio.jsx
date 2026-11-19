@@ -16,6 +16,7 @@ export default function BeadStudio({ sketch }) {
     const images = new Map();
     sketch.beads.forEach((id) => {
       if (images.has(id)) return;
+      images.set(id, null);
       const img = new Image();
       img.onload = () => images.set(id, img);
       img.src = material(id).image || "";
@@ -32,6 +33,10 @@ export default function BeadStudio({ sketch }) {
           vy: 0,
           r: Math.min(25, (material(sketch.beads[i]).mm || 8) * 1.4),
         });
+      bodies.current.get(id).r = Math.min(
+        25,
+        (material(sketch.beads[i]).mm || 8) * 1.4,
+      );
     });
     const target = layout(sketch.beads).nodes;
     function tick(time) {
@@ -103,7 +108,17 @@ export default function BeadStudio({ sketch }) {
       items.forEach((body, i) => {
         const id = sketch.beads[i],
           img = images.get(id);
-        if (!img) return;
+        if (!img) {
+          ctx.fillStyle = "#d9d5ca";
+          ctx.beginPath();
+          ctx.arc(body.x, body.y, body.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#40543d";
+          ctx.font = "12px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("?", body.x, body.y + 4);
+          return;
+        }
         const [x, y, size] = cropFor(id),
           factor = img.naturalWidth / 500;
         ctx.save();
