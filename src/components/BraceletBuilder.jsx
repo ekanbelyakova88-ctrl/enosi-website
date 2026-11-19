@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { materials } from "../data/materials";
 import { materialStory } from "../data/material-stories";
 import {
@@ -14,6 +21,11 @@ import {
 import "./builder.css";
 import "./workshop.css";
 import wristPhoto from "../assets/wrist-neutral.webp";
+
+import { estimate, production } from "./bracelet-calculations";
+import PersonalStart from "./PersonalStart";
+const Bracelet3D = lazy(() => import("./Bracelet3D"));
+const BeadStudio = lazy(() => import("./BeadStudio"));
 
 const TELEGRAM = "https://t.me/BeliakovaKaterina";
 const MAX =
@@ -219,6 +231,9 @@ export default function BraceletBuilder() {
   const [info, setInfo] = useState(null);
   const [photo, setPhoto] = useState(false);
   const [step, setStep] = useState("build");
+  const [visual, setVisual] = useState("classic");
+  const [personal, setPersonal] = useState(false);
+  const estimateNow = estimate(sketch);
   const [notice, setNotice] = useState("");
   const [storage, setStorage] = useState(true);
   const [drag, setDrag] = useState(null);
@@ -233,7 +248,12 @@ export default function BraceletBuilder() {
       m.name.toLowerCase().includes(query.toLowerCase()) &&
       (shape === "all" || m.shape === shape),
   );
-  const detail = useMemo(() => describe(sketch), [sketch]);
+  const detail = useMemo(
+    () =>
+      describe(sketch) +
+      `\nЗаказ: ${sketch.orderId}\nПосадка: ${sketch.fit}\nЛичные темы: ${(sketch.themes || []).join(", ")}\nМоя история: ${sketch.intention || ""}\nСтоимость: ${estimate(sketch).price ?? "согласуется с автором"}`,
+    [sketch],
+  );
   const chosenMaterial = material(chosen);
 
   useEffect(() => {
@@ -261,6 +281,12 @@ export default function BraceletBuilder() {
     }
     if (sketch.beads.length >= LIMIT) {
       setNotice(`В эскизе может быть до ${LIMIT} бусин.`);
+      return;
+    }
+    if (estimate({ ...sketch, beads: [...sketch.beads, id] }).overfilled) {
+      setNotice(
+        "Для выбранного размера не хватает места. Замените бусину или измените размер и посадку.",
+      );
       return;
     }
     const beads = [...sketch.beads],
@@ -375,6 +401,16 @@ export default function BraceletBuilder() {
         )
           slot = -1;
       }
+      const bin = document
+        .querySelector(".drop-delete")
+        ?.getBoundingClientRect();
+      d.delete =
+        !!bin &&
+        d.source === "existing" &&
+        e.clientX >= bin.left &&
+        e.clientX <= bin.right &&
+        e.clientY >= bin.top &&
+        e.clientY <= bin.bottom;
       d.slot = slot;
       setDrag({ ...d, x: e.clientX, y: e.clientY, slot });
     }
@@ -396,6 +432,14 @@ export default function BraceletBuilder() {
       dragState.current = null;
       setDrag(null);
       if (d.version !== sketch.instanceIds.join(",")) return;
+      if (e.type !== "pointercancel" && d.active && d.delete) {
+        commit({
+          ...sketch,
+          beads: sketch.beads.filter((_, i) => i !== d.index),
+          instanceIds: sketch.instanceIds.filter((_, i) => i !== d.index),
+        });
+        return;
+      }
       if (
         e.type === "pointercancel" ||
         !d.active ||
@@ -521,6 +565,14 @@ export default function BraceletBuilder() {
       className="builder section-space workshop"
       aria-labelledby="builder-title"
     >
+      {drag?.source === "existing" && (
+        <div
+          className="drop-delete"
+          style={{ background: drag.delete ? "#ecd3d8" : "#fff8f2" }}
+        >
+          Отпустите здесь, чтобы удалить бусину
+        </div>
+      )}
       <div className="builder-head">
         <span className="eyebrow">МАСТЕРСКАЯ ENOSI</span>
         <h2 id="builder-title">
@@ -538,6 +590,17 @@ export default function BraceletBuilder() {
         </li>
       </ol>
       <div className="builder-start">
+        <button
+          onClick={() => {
+            setPersonal(!personal);
+            setMode("new");
+          }}
+        >
+          Подобрать по дате рождения
+        </button>
+        <a className="button" href="#collection">
+          Выбрать из готовых
+        </a>
         <button
           aria-pressed={mode === "ideas"}
           onClick={() => {
@@ -589,19 +652,52 @@ export default function BraceletBuilder() {
           ))}
         </div>
       )}
+      {personal && <PersonalStart sketch={sketch} onChange={setSketch} />}
       {(mode || sketch.beads.length > 0) && (
         <div className="builder-grid">
           <div className="workshop-stage" ref={stage}>
+            <div className="workshop-view-switch">
+              <button
+                aria-pressed={visual === "classic"}
+                onClick={() => setVisual("classic")}
+              >
+                Классический
+              </button>
+              <button
+                aria-pressed={visual === "3d"}
+                onClick={() => setVisual("3d")}
+              >
+                Объёмный 3D
+              </button>
+              <button
+                aria-pressed={visual === "studio"}
+                onClick={() => setVisual("studio")}
+              >
+                Творческая студия
+              </button>
+            </div>
             <div className="workshop-preview">
-              <Bracelet
-                sketch={sketch}
-                interactive={step === "build"}
-                selected={selected}
-                slot={drag?.slot}
-                onSelect={setSelected}
-                onInsert={insertAt}
-                onPointerDown={(e, i) => startPointer(e, "existing", i)}
-              />
+              {visual === "studio" && (
+                <Suspense fallback={<p>Загружаем поднос…</p>}>
+                  <BeadStudio sketch={sketch} />
+                </Suspense>
+              )}
+              {visual === "3d" && (
+                <Suspense fallback={<p>Загружаем 3D…</p>}>
+                  <Bracelet3D sketch={sketch} />
+                </Suspense>
+              )}
+              <div hidden={visual !== "classic"}>
+                <Bracelet
+                  sketch={sketch}
+                  interactive={step === "build"}
+                  selected={selected}
+                  slot={drag?.slot}
+                  onSelect={setSelected}
+                  onInsert={insertAt}
+                  onPointerDown={(e, i) => startPointer(e, "existing", i)}
+                />
+              </div>
               {selected >= 0 && step === "build" && (
                 <div className="selection-actions">
                   <span>
@@ -654,6 +750,108 @@ export default function BraceletBuilder() {
                 }
               />
             </label>
+            <div className="size-controls">
+              <button
+                aria-label="Уменьшить обхват"
+                onClick={() =>
+                  setSketch({
+                    ...sketch,
+                    wrist: String(
+                      Math.max(8, Number(sketch.wrist || 17) - 0.5),
+                    ),
+                  })
+                }
+              >
+                −
+              </button>
+              <input
+                aria-label="Обхват ползунком"
+                type="range"
+                min="8"
+                max="30"
+                step="0.5"
+                value={sketch.wrist || 17}
+                onChange={(e) =>
+                  setSketch({ ...sketch, wrist: e.target.value })
+                }
+              />
+              <button
+                aria-label="Увеличить обхват"
+                onClick={() =>
+                  setSketch({
+                    ...sketch,
+                    wrist: String(
+                      Math.min(30, Number(sketch.wrist || 17) + 0.5),
+                    ),
+                  })
+                }
+              >
+                +
+              </button>
+            </div>
+            <label>
+              Посадка
+              <select
+                aria-label="Посадка"
+                value={sketch.fit}
+                onChange={(e) => setSketch({ ...sketch, fit: e.target.value })}
+              >
+                <option value="unknown">Нужно подобрать</option>
+                <option value="close">Плотная</option>
+                <option value="classic">Классическая</option>
+                <option value="loose">Свободная</option>
+              </select>
+            </label>
+            <p className="price-status">
+              Стоимость:{" "}
+              {estimateNow.price === null
+                ? "согласуется с автором"
+                : `${estimateNow.price} ₽`}
+            </p>
+            <details>
+              <summary>О моём браслете</summary>
+              {estimateNow.items.map(({ material: m, count }) => (
+                <p key={m.id}>
+                  {m.name} · {m.size} — {count} шт. ·{" "}
+                  {m.price === null || m.price === undefined
+                    ? "цена уточняется"
+                    : `${m.price} ₽`}
+                </p>
+              ))}
+              <p>
+                Длина элементов вдоль нити: около{" "}
+                {Math.round(estimateNow.axialLength)} мм. Это не внутренний
+                обхват браслета.
+              </p>
+              <p>
+                {estimateNow.requiresReview
+                  ? "Посадка требует проверки мастером: технологические припуски и размеры неровных элементов не подтверждены."
+                  : estimateNow.overfilled
+                    ? "В выбранном размере недостаточно места."
+                    : "Геометрическая оценка обновлена."}
+              </p>
+              <p>
+                {estimateNow.stockIssue
+                  ? "Часть материалов недоступна: перед заказом нужна замена."
+                  : "Доступность подтверждается автором при заказе."}
+              </p>
+              <label>
+                Основа
+                <select
+                  value={sketch.construction || "elastic"}
+                  onChange={(e) =>
+                    setSketch({ ...sketch, construction: e.target.value })
+                  }
+                >
+                  {production.constructions.map((c) => (
+                    <option key={c.id} value={c.id} disabled={!c.enabled}>
+                      {c.name}
+                      {!c.enabled ? " · пока недоступно" : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </details>
             <p className="workshop-notice" role="status">
               {notice ||
                 `${sketch.beads.length} бусин · ${storage ? "Эскиз сохраняется на этом устройстве" : "Хранилище недоступно: скачайте эскиз"}`}
@@ -715,6 +913,8 @@ export default function BraceletBuilder() {
                         onClick={() => {
                           setChosen(m.id);
                           setNotice("");
+                          if (visual === "studio")
+                            insertAt(sketch.beads.length, m.id);
                         }}
                         onPointerDown={(e) => startPointer(e, "palette", m.id)}
                       >

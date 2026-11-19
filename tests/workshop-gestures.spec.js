@@ -6,12 +6,10 @@ test("touch hold inserts into a precise gap and Escape cancels", async ({
   page,
 }) => {
   await page.goto("/");
+  await page.evaluate(() => document.fonts.ready);
   await page.getByRole("button", { name: "С нуля", exact: true }).click();
   const card = page.locator(".material-select").first();
   await card.scrollIntoViewIfNeeded();
-  const target = await page
-    .getByRole("button", { name: "Вставить бусину: место 1", exact: true })
-    .boundingBox();
   await card.dispatchEvent("pointerdown", {
     pointerId: 32,
     pointerType: "touch",
@@ -20,6 +18,10 @@ test("touch hold inserts into a precise gap and Escape cancels", async ({
     clientY: 500,
   });
   await page.waitForTimeout(320);
+  const target = await page
+    .getByRole("button", { name: "Вставить бусину: место 1", exact: true })
+    .boundingBox();
+
   await page.evaluate(
     ({ x, y }) => {
       window.dispatchEvent(
@@ -41,7 +43,7 @@ test("touch hold inserts into a precise gap and Escape cancels", async ({
     },
     { x: target.x + target.width / 2, y: target.y + target.height / 2 },
   );
-  expect((await read(page)).beads).toEqual(["m01"]);
+  await expect.poll(async () => (await read(page)).beads).toEqual(["m01"]);
   await card.dispatchEvent("pointerdown", {
     pointerId: 33,
     pointerType: "touch",
@@ -75,6 +77,7 @@ test("unavailable material cannot be inserted and unknown old beads survive", as
     key,
   );
   await page.goto("/");
+  await page.evaluate(() => document.fonts.ready);
   await page.evaluate(async () => {
     const m = await import("/src/data/materials.js");
     m.byId.m01.available = false;
@@ -99,6 +102,7 @@ test("dragging one of two equal beads preserves its identity and precise order",
     key,
   );
   await page.goto("/");
+  await page.evaluate(() => document.fonts.ready);
   const old = await read(page);
   const bead = page.getByRole("button", {
     name: "Позиция 1: Горный хрусталь",

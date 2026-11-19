@@ -27,7 +27,15 @@ export function validate(value) {
     instanceIds,
     name: String(value?.name || "").slice(0, 60),
     wrist: String(value?.wrist || "").slice(0, 5),
-    fit: ["close", "loose", "unknown"].includes(value?.fit)
+    orderId:
+      typeof value?.orderId === "string" ? value.orderId : crypto.randomUUID(),
+    construction: value?.construction || "elastic",
+    birthDate: String(value?.birthDate || "").slice(0, 10),
+    themes: Array.isArray(value?.themes)
+      ? value.themes.filter((x) => typeof x === "string").slice(0, 12)
+      : [],
+    intention: String(value?.intention || "").slice(0, 500),
+    fit: ["close", "classic", "loose", "unknown"].includes(value?.fit)
       ? value.fit
       : "unknown",
     wishes: String(value?.wishes || "").slice(0, 500),
