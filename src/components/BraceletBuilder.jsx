@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { materials } from "../data/materials";
+import { materials, inStock } from "../data/materials";
 import { materialStory } from "../data/material-stories";
 import {
   STORAGE_KEY,
@@ -22,8 +22,19 @@ import "./builder.css";
 import "./workshop.css";
 import wristPhoto from "../assets/wrist-neutral.webp";
 
-import { estimate, production } from "./bracelet-calculations";
+import {
+  estimate,
+  production,
+  compositionIssue,
+  componentPriceLabel,
+} from "./bracelet-calculations";
 import PersonalStart from "./PersonalStart";
+import {
+  matchesFeatures,
+  colorGroups,
+  palettes,
+} from "../data/material-features";
+import { compositionStory, composeMaterials } from "./bracelet-recommendations";
 const Bracelet3D = lazy(() => import("./Bracelet3D"));
 const BeadStudio = lazy(() => import("./BeadStudio"));
 
@@ -217,7 +228,7 @@ function WristPreview({ sketch }) {
 }
 
 export default function BraceletBuilder() {
-  const initial = useRef(load()).current;
+  const [initial] = useState(load);
   const [sketch, setSketch] = useState(initial.current);
   const [saved, setSaved] = useState(initial.saved);
   const [past, setPast] = useState([]);
@@ -227,6 +238,12 @@ export default function BraceletBuilder() {
   const [selected, setSelected] = useState(-1);
   const [query, setQuery] = useState("");
   const [shape, setShape] = useState("all");
+  const [features, setFeatures] = useState({
+    color: "all",
+    palette: "free",
+    size: "all",
+    surface: "all",
+  });
   const [only, setOnly] = useState(true);
   const [info, setInfo] = useState(null);
   const [photo, setPhoto] = useState(false);
@@ -244,9 +261,10 @@ export default function BraceletBuilder() {
   const filtered = materials.filter(
     (m) =>
       m.active &&
-      (!only || m.available) &&
+      (!only || inStock(m)) &&
       m.name.toLowerCase().includes(query.toLowerCase()) &&
-      (shape === "all" || m.shape === shape),
+      (shape === "all" || m.shape === shape) &&
+      matchesFeatures(m, features),
   );
   const detail = useMemo(
     () =>
@@ -279,6 +297,14 @@ export default function BraceletBuilder() {
       setNotice("Этот материал сейчас недоступен.");
       return;
     }
+    const issue = compositionIssue(
+      { ...sketch, beads: [...sketch.beads, id] },
+      sketch,
+    );
+    if (issue) {
+      setNotice(issue);
+      return;
+    }
     if (sketch.beads.length >= LIMIT) {
       setNotice(`В эскизе может быть до ${LIMIT} бусин.`);
       return;
@@ -305,10 +331,16 @@ export default function BraceletBuilder() {
   }
   function replace() {
     if (!chosenMaterial.available || !chosenMaterial.active) return;
-    commit({
+    const next = {
       ...sketch,
       beads: sketch.beads.map((id, i) => (i === selected ? chosen : id)),
-    });
+    };
+    const issue = compositionIssue(next, sketch);
+    if (issue) {
+      setNotice(issue);
+      return;
+    }
+    commit(next);
   }
   function undo() {
     if (!past.length) return;
@@ -630,6 +662,18 @@ export default function BraceletBuilder() {
                   );
                   return;
                 }
+                const candidate = Array.from(
+                  { length: 24 },
+                  (_, i) => idea.ids[i % idea.ids.length],
+                );
+                const issue = compositionIssue(
+                  { ...sketch, beads: candidate },
+                  sketch,
+                );
+                if (issue) {
+                  setNotice(issue);
+                  return;
+                }
                 commit(
                   validate({
                     ...sketch,
@@ -652,7 +696,32 @@ export default function BraceletBuilder() {
           ))}
         </div>
       )}
-      {personal && <PersonalStart sketch={sketch} onChange={setSketch} />}
+      {personal && (
+        <PersonalStart
+          sketch={sketch}
+          onChange={setSketch}
+          onInfo={(m, trigger) => {
+            infoTrigger.current = trigger;
+            setInfo(m);
+          }}
+          onCompose={(ids) => {
+            const beads = composeMaterials(ids, sketch.wrist);
+            const issue = compositionIssue({ ...sketch, beads }, sketch);
+            if (issue) {
+              setNotice(issue);
+              return;
+            }
+            if (beads.length) {
+              commit(validate({ ...sketch, beads, instanceIds: [] }));
+              setMode("new");
+              setStep("build");
+              setNotice(
+                "Стартовая композиция собрана. Размер и посадку проверит мастер.",
+              );
+            }
+          }}
+        />
+      )}
       {(mode || sketch.beads.length > 0) && (
         <div className="builder-grid">
           <div className="workshop-stage" ref={stage}>
@@ -810,12 +879,11 @@ export default function BraceletBuilder() {
             </p>
             <details>
               <summary>О моём браслете</summary>
+              <p>{compositionStory(sketch)}</p>
               {estimateNow.items.map(({ material: m, count }) => (
                 <p key={m.id}>
                   {m.name} · {m.size} — {count} шт. ·{" "}
-                  {m.price === null || m.price === undefined
-                    ? "цена уточняется"
-                    : `${m.price} ₽`}
+                  {componentPriceLabel(m.price)}
                 </p>
               ))}
               <p>
@@ -864,6 +932,68 @@ export default function BraceletBuilder() {
                   Перетащите бусину на +. На телефоне удерживайте её перед
                   переносом или выберите нажатием и коснитесь +.
                 </p>
+                <details className="extended-filters">
+                  <summary>Палитра, цвет, размер и поверхность</summary>
+                  <div className="workshop-filters">
+                    {[
+                      ["palette", "Палитра", palettes],
+                      ["color", "Цвет", colorGroups],
+                      [
+                        "size",
+                        "Размер",
+                        {
+                          all: "Любой размер",
+                          small: "Не крупнее 8 мм",
+                          medium: "8–10 мм",
+                          large: "Есть элементы крупнее 10 мм",
+                        },
+                      ],
+                      [
+                        "surface",
+                        "Поверхность",
+                        {
+                          all: "Все поверхности",
+                          matte: "Матовая",
+                          faceted: "Гранёная",
+                          other: "Остальные поверхности",
+                        },
+                      ],
+                    ].map(([key, label, options]) => (
+                      <label key={key}>
+                        {label}
+                        <select
+                          aria-label={label}
+                          value={features[key]}
+                          onChange={(e) =>
+                            setFeatures({ ...features, [key]: e.target.value })
+                          }
+                        >
+                          {Object.entries(options).map(([value, name]) => (
+                            <option value={value} key={value}>
+                              {name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() =>
+                      setFeatures({
+                        color: "all",
+                        palette: "free",
+                        size: "all",
+                        surface: "all",
+                      })
+                    }
+                  >
+                    Сбросить фильтры
+                  </button>
+                  <p>
+                    Цветовые группы — ориентир по фотографиям ENOSI. Обработка
+                    указана по данным автора.
+                  </p>
+                </details>
                 <div className="workshop-filters">
                   <label>
                     Поиск
@@ -921,11 +1051,12 @@ export default function BraceletBuilder() {
                         <img draggable="false" src={m.image} alt="" />
                         <span>
                           <strong>{m.name}</strong>
+                          <small>{componentPriceLabel(m.price)}</small>
                           <small>
                             {m.size} · {m.shape}
                           </small>
                           <small>
-                            {m.available ? "В наличии" : "Нет в наличии"}
+                            {inStock(m) ? "В наличии" : "Нет в наличии"}
                           </small>
                         </span>
                       </button>
@@ -967,6 +1098,13 @@ export default function BraceletBuilder() {
                       disabled={
                         !sketch.beads.length ||
                         sketch.beads.length * 2 > LIMIT ||
+                        !!compositionIssue(
+                          {
+                            ...sketch,
+                            beads: [...sketch.beads, ...sketch.beads],
+                          },
+                          sketch,
+                        ) ||
                         sketch.beads.some(
                           (id) =>
                             !material(id).available || !material(id).active,
@@ -1069,21 +1207,27 @@ export default function BraceletBuilder() {
                   Локальный визуальный эскиз. Масштаб ориентировочный: посадка
                   зависит от обхвата запястья и размеров бусин.
                 </p>
-                <div className="wrist-preview">
-                  <WristPreview sketch={sketch} />
-                </div>
-                <p>
-                  Фон запястья создан для ENOSI. Часть бусин скрыта за
-                  запястьем. Это приближённая визуализация, детали крошки и
-                  посадку проверит автор.
-                </p>
-                <p>
-                  Визуальный эскиз. Оттенки природных камней и посадку уточним
-                  перед изготовлением
-                </p>
-                <button onClick={() => exportImage(false, true)}>
-                  Сохранить примерку
-                </button>
+                <Suspense fallback={<p>Загружаем модель запястья…</p>}>
+                  <Bracelet3D sketch={sketch} onWrist />
+                </Suspense>
+                <details>
+                  <summary>Фотоэскиз и сохранение изображения</summary>
+                  <div className="wrist-preview">
+                    <WristPreview sketch={sketch} />
+                  </div>
+                  <p>
+                    Фон запястья создан для ENOSI. Часть бусин скрыта за
+                    запястьем. Это приближённая визуализация, детали крошки и
+                    посадку проверит автор.
+                  </p>
+                  <p>
+                    Визуальный эскиз. Оттенки природных камней и посадку уточним
+                    перед изготовлением
+                  </p>
+                  <button onClick={() => exportImage(false, true)}>
+                    Сохранить примерку
+                  </button>
+                </details>
                 <button onClick={() => setStep("build")}>
                   Вернуться к редактированию
                 </button>

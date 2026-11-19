@@ -141,6 +141,9 @@ test("try-on and order reuse exact sequence and image can be downloaded", async 
   await page
     .getByRole("button", { name: "Примерить на руке", exact: true })
     .click();
+  await page
+    .getByText("Фотоэскиз и сохранение изображения", { exact: true })
+    .click();
   await expect(page.locator(".wrist-image")).toBeVisible();
   expect(
     await page

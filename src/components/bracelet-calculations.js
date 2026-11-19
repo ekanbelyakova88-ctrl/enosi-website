@@ -13,6 +13,20 @@ export const production = {
   allowancesMm: { close: null, classic: null, loose: null },
   hardware: [],
 };
+export const moneyCents = (value) =>
+  Number.isFinite(value) &&
+  value >= 0 &&
+  Number.isSafeInteger(Math.round(value * 100))
+    ? Math.round(value * 100)
+    : null;
+
+export function componentPriceLabel(value) {
+  const cents = moneyCents(value);
+  return cents === null
+    ? "Цена — по согласованию"
+    : `${(cents / 100).toLocaleString("ru-RU")} ₽ / шт.`;
+}
+
 export function estimate(sketch) {
   const items = Object.entries(
     sketch.beads.reduce(
@@ -20,23 +34,20 @@ export function estimate(sketch) {
       {},
     ),
   ).map(([id, count]) => ({ material: material(id), count }));
-  const unknown = items.some(
-    ({ material: m }) => !Number.isFinite(m.price) || m.price < 0,
-  );
+  const cents = moneyCents;
   const construction = production.constructions.find(
     (c) => c.id === (sketch.construction || "elastic"),
   );
-  const price =
-    unknown || !Number.isFinite(construction?.workPrice)
+  const work = cents(construction?.workPrice);
+  const unknown = items.some(({ material: m }) => cents(m.price) === null);
+  const sum =
+    unknown || work === null
       ? null
-      : Math.round(
-          (items.reduce(
-            (sum, { material: m, count }) => sum + m.price * count,
-            0,
-          ) +
-            construction.workPrice) *
-            100,
-        ) / 100;
+      : items.reduce(
+          (total, { material: m, count }) => total + cents(m.price) * count,
+          work,
+        );
+  const price = sum !== null && Number.isSafeInteger(sum) ? sum / 100 : null;
   const mm = Number(sketch.wrist) * 10;
   const allowance = production.allowancesMm[sketch.fit];
   const irregular = items.some(
@@ -45,7 +56,10 @@ export function estimate(sketch) {
   );
   let occupied = null;
   if (
-    mm > 0 &&
+    mm >= 80 &&
+    mm <= 300 &&
+    Number.isFinite(allowance) &&
+    mm + allowance > 0 &&
     allowance !== null &&
     allowance !== undefined &&
     !irregular &&
@@ -86,4 +100,18 @@ export function estimate(sketch) {
       0,
     ),
   };
+}
+export function compositionIssue(next, previous) {
+  const before = estimate(previous).items;
+  for (const { material: m, count } of estimate(next).items) {
+    const old = before.find((item) => item.material.id === m.id)?.count || 0;
+    if (count <= old) continue;
+    if (!m.active || !m.available)
+      return "Один из добавляемых материалов сейчас недоступен.";
+    if (Number.isFinite(m.stock) && count > m.stock)
+      return `Для материала «${m.name}» недостаточно подтверждённого остатка.`;
+  }
+  return estimate(next).overfilled
+    ? "Для выбранного размера недостаточно места. Замените элементы или измените размер."
+    : null;
 }

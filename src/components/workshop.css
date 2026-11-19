@@ -434,4 +434,59 @@
   font-size: 13px;
   box-shadow: 0 3px 15px #243b2b18;
 }
-.workshop-view-switch{flex-wrap:wrap}.hero h1{font-size:clamp(25px,7.8vw,82px)}
+.workshop-view-switch {
+  flex-wrap: wrap;
+}
+.hero h1 {
+  font-size: clamp(25px, 7.8vw, 82px);
+}
+.extended-filters {
+  margin: 15px 0;
+  padding: 15px 0;
+  border-block: 1px solid #c5d1bd;
+}
+.extended-filters p {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.recommendation-row {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #d6dfcf;
+}
+.recommendation-row > img {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.recommendation-row p {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.composition-materials {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.composition-materials label {
+  display: flex !important;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px !important;
+}
+.composition-materials input {
+  width: 18px !important;
+}
+.composition-materials img {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+/* Фокус поля не перемещает кнопки между нажатием и отпусканием. */
+@media(min-height:760px) and (max-width:760px){.workshop-stage:has(input:focus),.workshop-stage:has(input[type=number]:focus){position:sticky}}
+@media(max-width:760px){.workshop-stage:has(.three-view){position:static!important}}
+.workshop-stage:has(> details[open]){position:static!important}

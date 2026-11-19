@@ -37,3 +37,7 @@ const rows = [
 export const materialSettings = {};
 export const materials = rows.map(([id, name, original, shape, size, mm, color]) => ({id, name, original:`${original}, ${shape}, ${size}`, material:name, shape, treatment:['m15','m19'].includes(id) ? 'гранёный' : shape === 'матовая' ? 'матовая' : shape === 'гранёная' ? 'гранёная' : null, size, mm, color, image:materialImages[`../assets/bead-photos/${id}.webp`], available:true, stock:null, price:null, active:true, needsReview:['самородок','крошка','цилиндр'].includes(shape), ...(materialSettings[id] || {})}));
 export const byId = Object.fromEntries(materials.map(m => [m.id,m]));
+
+export function inStock(m) {
+  return !!m?.active && !!m?.available && (!Number.isFinite(m.stock) || m.stock > 0);
+}

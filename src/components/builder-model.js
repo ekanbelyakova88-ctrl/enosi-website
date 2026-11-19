@@ -30,6 +30,11 @@ export function validate(value) {
     orderId:
       typeof value?.orderId === "string" ? value.orderId : crypto.randomUUID(),
     construction: value?.construction || "elastic",
+    recommendationIds: Array.isArray(value?.recommendationIds)
+      ? value.recommendationIds
+          .filter((id) => typeof id === "string")
+          .slice(0, 60)
+      : [],
     birthDate: String(value?.birthDate || "").slice(0, 10),
     themes: Array.isArray(value?.themes)
       ? value.themes.filter((x) => typeof x === "string").slice(0, 12)
@@ -75,15 +80,15 @@ export function layout(beads) {
   const circumference = Math.max(870, total);
   const scale = 870 / circumference;
   let offset = 0;
-  const slots = [{ x: 200, y: 52 }];
+  const slots = [{ x: 190, y: 70 }];
   const nodes = diameters.map((d, i) => {
     const angle =
       -Math.PI / 2 + ((offset + lengths[i] / 2) / circumference) * Math.PI * 2;
     offset += lengths[i];
     const slotAngle = -Math.PI / 2 + (offset / circumference) * Math.PI * 2;
     slots.push({
-      x: 200 + 138 * Math.cos(slotAngle),
-      y: 190 + 138 * Math.sin(slotAngle),
+      x: 200 + 118 * Math.cos(slotAngle),
+      y: 190 + 118 * Math.sin(slotAngle),
     });
     return {
       x: 200 + 138 * Math.cos(angle),
@@ -92,6 +97,11 @@ export function layout(beads) {
       angle,
     };
   });
+  if (
+    slots.length > 1 &&
+    Math.hypot(slots.at(-1).x - slots[0].x, slots.at(-1).y - slots[0].y) < 20
+  )
+    slots[slots.length - 1] = { x: 210, y: 70 };
   return { nodes, slots };
 }
 export function describe(sketch) {

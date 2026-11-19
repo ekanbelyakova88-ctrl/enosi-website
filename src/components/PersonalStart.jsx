@@ -1,4 +1,6 @@
 import React from "react";
+import { materials, inStock } from "../data/materials";
+import { recommendations } from "./bracelet-recommendations";
 const signs = [
   ["Козерог", 120, "Земля"],
   ["Водолей", 219, "Воздух"],
@@ -29,8 +31,10 @@ export function zodiac(value) {
       }
     : null;
 }
-export default function PersonalStart({ sketch, onChange }) {
+export default function PersonalStart({ sketch, onChange, onCompose, onInfo }) {
+  const selected = sketch.recommendationIds || [];
   const sign = zodiac(sketch.birthDate || "");
+  const suggestions = recommendations(sketch.themes || [], sign);
   const topics = [
     "Любовь",
     "Спокойствие",
@@ -92,10 +96,66 @@ export default function PersonalStart({ sketch, onChange }) {
           onChange={(e) => onChange({ ...sketch, intention: e.target.value })}
         />
       </label>
+      <h3>Идеи ENOSI по вашим темам</h3>
+      <p>
+        Это авторские ассоциации цвета, а не обещание действия камней. Вы можете
+        выбрать любые доступные материалы.
+      </p>
+      {suggestions.map(({ material: m, reasons }) => (
+        <div className="recommendation-row" key={m.id}>
+          <img src={m.image} alt="" />
+          <div>
+            <strong>{m.name}</strong>
+            <p>{reasons.join(". ")}</p>
+            <button onClick={(e) => onInfo?.(m, e.currentTarget)}>
+              О камне
+            </button>
+          </div>
+        </div>
+      ))}
+      <details>
+        <summary>Выбрать камни для начальной композиции</summary>
+        <div className="composition-materials">
+          {materials
+            .filter((m) => inStock(m))
+            .map((m) => (
+              <label key={m.id}>
+                <input
+                  type="checkbox"
+                  checked={selected.includes(m.id)}
+                  onChange={(e) =>
+                    onChange({
+                      ...sketch,
+                      recommendationIds: e.target.checked
+                        ? [...selected, m.id]
+                        : selected.filter((id) => id !== m.id),
+                    })
+                  }
+                />
+                <img src={m.image} alt="" />
+                {m.name} · {m.size}
+              </label>
+            ))}
+        </div>
+      </details>
+      <button
+        disabled={!selected.length && !suggestions.length}
+        onClick={() =>
+          onCompose?.(
+            selected.length ? selected : suggestions.map((x) => x.material.id),
+          )
+        }
+      >
+        Создать начальную композицию
+      </button>
+      <p>
+        Порядок можно полностью изменить. Начальная композиция — предложение по
+        цвету и ритму; физическую посадку проверит мастер.
+      </p>
       <p>
         Выбранные темы — ваши личные ассоциации. Они не обещают защиту, здоровье
-        или финансовый результат. Проверенные привязки камней к знакам пока не
-        добавлены.
+        или финансовый результат. Палитры ENOSI — авторская интерпретация,
+        которую вы можете свободно изменить.
       </p>
     </details>
   );
