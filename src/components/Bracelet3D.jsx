@@ -8,6 +8,12 @@ export default function Bracelet3D({ sketch, onWrist = false }) {
     controlsRef = useRef(null);
   const [error, setError] = useState("");
   const [modelReady, setModelReady] = useState(!onWrist);
+  const [renderWrist, setRenderWrist] = useState(sketch.wrist);
+  const resizing = renderWrist !== sketch.wrist;
+  useEffect(() => {
+    const timer = setTimeout(() => setRenderWrist(sketch.wrist), 120);
+    return () => clearTimeout(timer);
+  }, [sketch.wrist]);
   useEffect(() => {
     const element = container.current;
     setError("");
@@ -18,6 +24,7 @@ export default function Bracelet3D({ sketch, onWrist = false }) {
     const beads = [];
     let wristObject;
     function fail() {
+      if (disposed) return;
       setError(
         "3D недоступно на этом устройстве. Состав сохранён, продолжайте сборку в классическом режиме.",
       );
@@ -44,7 +51,7 @@ export default function Bracelet3D({ sketch, onWrist = false }) {
       fill.position.set(-80, 30, -30);
       scene.add(fill);
       const innerRadius =
-        (Math.max(8, Math.min(30, Number(sketch.wrist) || 17)) * 10) /
+        (Math.max(8, Math.min(30, Number(renderWrist) || 17)) * 10) /
         (2 * Math.PI);
       const radius = innerRadius + 4;
       function photographTexture(m, surface) {
@@ -236,13 +243,21 @@ export default function Bracelet3D({ sketch, onWrist = false }) {
         object.material?.dispose();
       });
       renderer?.dispose();
+      renderer?.forceContextLoss();
       renderer?.domElement.remove();
       controlsRef.current = null;
     };
-  }, [sketch.beads, sketch.instanceIds, sketch.wrist, onWrist]);
+  }, [sketch.beads, sketch.instanceIds, renderWrist, onWrist]);
   return (
     <div className={onWrist ? "three-view wrist-three-view" : "three-view"}>
       <div ref={container} />
+      {resizing && <p role="status">Обновляем размер модели…</p>}
+      {!sketch.wrist && (
+        <p>
+          Для просмотра выбран условный размер 17 см. Ваш размер в эскизе
+          остаётся неуказанным.
+        </p>
+      )}
       {onWrist && !modelReady && !error && (
         <p role="status">Загружаем модель запястья…</p>
       )}
@@ -270,7 +285,7 @@ export default function Bracelet3D({ sketch, onWrist = false }) {
             Исходный ракурс
           </button>
           <button
-            disabled={onWrist && !modelReady}
+            disabled={resizing || (onWrist && !modelReady)}
             onClick={() => {
               const v = controlsRef.current;
               if (!v) return;
