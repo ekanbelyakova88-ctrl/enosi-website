@@ -7,9 +7,11 @@ export default function Bracelet3D({ sketch, onWrist = false }) {
   const container = useRef(null),
     controlsRef = useRef(null);
   const [error, setError] = useState("");
+  const [modelReady, setModelReady] = useState(!onWrist);
   useEffect(() => {
     const element = container.current;
     setError("");
+    setModelReady(!onWrist);
     let renderer, observer, controls, scene;
     let disposed = false;
     const textures = new Map();
@@ -180,6 +182,7 @@ export default function Bracelet3D({ sketch, onWrist = false }) {
               return;
             }
             wristObject = model.object;
+            setModelReady(true);
             scene.add(wristObject);
             beads.forEach(({ bead, angle, d }) => {
               const nx = Math.cos(angle) / model.rx,
@@ -240,6 +243,9 @@ export default function Bracelet3D({ sketch, onWrist = false }) {
   return (
     <div className={onWrist ? "three-view wrist-three-view" : "three-view"}>
       <div ref={container} />
+      {onWrist && !modelReady && !error && (
+        <p role="status">Загружаем модель запястья…</p>
+      )}
       {error ? (
         <p role="status">{error}</p>
       ) : (
@@ -264,6 +270,7 @@ export default function Bracelet3D({ sketch, onWrist = false }) {
             Исходный ракурс
           </button>
           <button
+            disabled={onWrist && !modelReady}
             onClick={() => {
               const v = controlsRef.current;
               if (!v) return;
