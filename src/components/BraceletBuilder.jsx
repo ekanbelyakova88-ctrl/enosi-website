@@ -356,6 +356,22 @@ export default function BraceletBuilder() {
     setFuture((f) => f.slice(1));
     setSelected(-1);
   }
+  function suggestComposition(ids) {
+    const beads = composeMaterials(ids, sketch.wrist);
+    const issue = compositionIssue({ ...sketch, beads }, sketch);
+    if (issue) {
+      setNotice(issue);
+      return;
+    }
+    if (beads.length) {
+      commit(validate({ ...sketch, beads, instanceIds: [] }));
+      setMode("new");
+      setStep("build");
+      setNotice(
+        "Стартовая композиция собрана. Размер и посадку проверит мастер.",
+      );
+    }
+  }
   function startNew() {
     if (
       sketch.beads.length &&
@@ -704,22 +720,7 @@ export default function BraceletBuilder() {
             infoTrigger.current = trigger;
             setInfo(m);
           }}
-          onCompose={(ids) => {
-            const beads = composeMaterials(ids, sketch.wrist);
-            const issue = compositionIssue({ ...sketch, beads }, sketch);
-            if (issue) {
-              setNotice(issue);
-              return;
-            }
-            if (beads.length) {
-              commit(validate({ ...sketch, beads, instanceIds: [] }));
-              setMode("new");
-              setStep("build");
-              setNotice(
-                "Стартовая композиция собрана. Размер и посадку проверит мастер.",
-              );
-            }
-          }}
+          onCompose={suggestComposition}
         />
       )}
       {(mode || sketch.beads.length > 0) && (
@@ -879,6 +880,17 @@ export default function BraceletBuilder() {
             </p>
             <details>
               <summary>О моём браслете</summary>
+              <button
+                disabled={!sketch.wrist || !sketch.beads.length}
+                onClick={() => suggestComposition([...new Set(sketch.beads)])}
+              >
+                Предложить вариант под этот размер
+              </button>
+              <p>
+                Сохранится выбранная палитра. Порядок и количество будут
+                предложены заново; посадку проверит мастер. Исходный вариант
+                можно вернуть кнопкой «Отменить».
+              </p>
               <p>{compositionStory(sketch)}</p>
               {estimateNow.items.map(({ material: m, count }) => (
                 <p key={m.id}>

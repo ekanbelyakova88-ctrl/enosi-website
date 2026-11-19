@@ -80,7 +80,7 @@ export function composeMaterials(ids, wrist) {
   const target = Number(wrist) > 0 ? Number(wrist) * 10 : 170;
   const count = Math.min(
     60,
-    Math.max(motif.length, Math.round((target + Math.PI * mean) / mean)),
+    Math.max(sorted.length, Math.round((target + Math.PI * mean) / mean)),
   );
   return Array.from({ length: count }, (_, i) => motif[i % motif.length]);
 }
